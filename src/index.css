@@ -1,0 +1,162 @@
+:root {
+  --bg-void:       #04040a;
+  --bg-deep:       #07080f;
+  --bg-card:       #0c0d17;
+  --bg-card2:      #10121e;
+  --bg-hover:      #181b2a;
+  --bg-input:      #0e1020;
+
+  --border:        rgba(255,255,255,0.055);
+  --border-md:     rgba(255,255,255,0.09);
+  --border-bright: rgba(255,255,255,0.15);
+
+  --cyan:          #00d4ff;
+  --cyan-dim:      rgba(0,212,255,0.12);
+  --cyan-glow:     rgba(0,212,255,0.3);
+  --green:         #00ff88;
+  --green-dim:     rgba(0,255,136,0.1);
+  --red:           #ff4466;
+  --red-dim:       rgba(255,68,102,0.1);
+  --amber:         #ffb800;
+  --amber-dim:     rgba(255,184,0,0.1);
+  --purple:        #9945ff;
+  --purple-dim:    rgba(153,69,255,0.12);
+
+  --text-1:  #eef0ff;
+  --text-2:  #7a84a3;
+  --text-3:  #3e4560;
+
+  --font-display: 'Syne', sans-serif;
+  --font-mono:    'JetBrains Mono', monospace;
+  --font-body:    'Outfit', sans-serif;
+
+  --r:   10px;
+  --r-lg:16px;
+  --r-xl:22px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg-void);
+  color: var(--text-1);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.65;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+::-webkit-scrollbar        { width: 5px; height: 5px; }
+::-webkit-scrollbar-track  { background: transparent; }
+::-webkit-scrollbar-thumb  { background: var(--bg-hover); border-radius: 3px; }
+
+h1,h2,h3,h4,h5 { font-family: var(--font-display); line-height: 1.2; }
+.mono           { font-family: var(--font-mono); }
+::selection     { background: var(--cyan-dim); color: var(--cyan); }
+
+.pos { color: var(--green) !important; }
+.neg { color: var(--red)   !important; }
+
+.glass {
+  background: rgba(12,13,23,0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border);
+}
+
+@keyframes fadeUp {
+  from { opacity:0; transform:translateY(18px); }
+  to   { opacity:1; transform:translateY(0);    }
+}
+@keyframes fadeIn {
+  from { opacity:0; }
+  to   { opacity:1; }
+}
+@keyframes scanline {
+  0%   { transform:translateY(-100%); }
+  100% { transform:translateY(100vh); }
+}
+@keyframes blink {
+  0%,100% { opacity:1; }
+  50%      { opacity:0; }
+}
+@keyframes pulse-glow {
+  0%,100% { box-shadow: 0 0 0 0 var(--cyan-glow); }
+  50%      { box-shadow: 0 0 20px 4px var(--cyan-glow); }
+}
+@keyframes ticker {
+  from { transform:translateX(0); }
+  to   { transform:translateX(-50%); }
+}
+@keyframes spin {
+  to { transform:rotate(360deg); }
+}
+@keyframes notifSlide {
+  from { opacity:0; transform:translateX(120%); }
+  to   { opacity:1; transform:translateX(0);    }
+}
+
+.bg-grid {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-image:
+    linear-gradient(rgba(0,212,255,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,212,255,0.025) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+.bg-grid::after {
+  content:'';
+  position:absolute; inset:0;
+  background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(0,212,255,0.06) 0%, transparent 70%);
+}
+
+.wallet-adapter-button {
+  font-family: var(--font-display) !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  border-radius: var(--r) !important;
+  background: var(--cyan-dim) !important;
+  border: 1px solid rgba(0,212,255,0.35) !important;
+  color: var(--cyan) !important;
+  padding: 10px 20px !important;
+  transition: all .2s !important;
+}
+.wallet-adapter-button:hover {
+  background: rgba(0,212,255,0.22) !important;
+  box-shadow: 0 0 20px var(--cyan-glow) !important;
+}
+.wallet-adapter-modal-wrapper {
+  background: var(--bg-card2) !important;
+  border: 1px solid var(--border-md) !important;
+  border-radius: var(--r-xl) !important;
+}
+.wallet-adapter-modal-title {
+  font-family: var(--font-display) !important;
+  color: var(--text-1) !important;
+}
+
+input[type=range] {
+  height: 4px;
+  background: var(--border-md);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+  width: 100%;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: var(--cyan);
+  box-shadow: 0 0 8px var(--cyan-glow);
+  cursor: pointer;
+}
+
+.recharts-tooltip-wrapper .recharts-default-tooltip {
+  background: var(--bg-card2) !important;
+  border: 1px solid var(--border-md) !important;
+  border-radius: 8px !important;
+  font-family: var(--font-mono) !important;
+}
