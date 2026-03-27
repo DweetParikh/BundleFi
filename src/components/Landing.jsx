@@ -23,7 +23,7 @@ export default function Landing() {
           marginBottom:32, animation:'fadeUp .5s ease both', letterSpacing:'0.08em',
         }}>
           <div style={{ width:6, height:6, borderRadius:'50%', background:'var(--cyan)', animation:'blink 1.5s infinite' }} />
-          LIVE ON SOLANA MAINNET
+          SOON LIVE ON SOLANA
           {sources.coingecko || sources.jupiter ? (
             <span style={{ color:'var(--green)', marginLeft:4 }}>· PRICES LIVE</span>
           ) : loading ? (
@@ -68,9 +68,8 @@ export default function Landing() {
         {/* Stats */}
         <div style={{ display:'flex', gap:48, marginTop:80, flexWrap:'wrap', justifyContent:'center', animation:'fadeUp .5s .4s ease both' }}>
           {[
-            { label:'TOTAL AUM',     value:'$16.9M',  sub:'across all bundles'   },
             { label:'AVG 6M RETURN', value:'+218%',   sub:'top performer bundle', green:true },
-            { label:'LIVE PRICES',   value: sources.jupiter ? 'Jupiter' : sources.coingecko ? 'CoinGecko' : '—', sub:'updated every 30s' },
+            { label:'LIVE PRICES',   value: sources.jupiter ? 'Jupiter' : sources.coingecko ? 'Jupiter' : '—', sub:'updated every 30s' },
             { label:'CHAIN',         value:'Solana',  sub:'<0.01s finality'      },
           ].map(s => (
             <div key={s.label} style={{ textAlign:'center' }}>
@@ -133,9 +132,8 @@ export default function Landing() {
         ))}
       </div>
 
-      <div style={{ borderTop:'1px solid var(--border)', padding:'20px 32px', display:'flex', justifyContent:'space-between', alignItems:'center', color:'var(--text-3)', fontSize:12, fontFamily:'var(--font-mono)', flexWrap:'wrap', gap:12 }}>
-        <span>© 2025 BundleFi — Built on Solana</span>
-        <span>Prices: Jupiter + CoinGecko · Phantom · Solflare</span>
+      <div style={{ borderTop:'1px solid var(--border)', padding:'20px 32px', display:'flex', justifyContent:'center', color:'var(--text-3)', fontSize:12, fontFamily:'var(--font-mono)', flexWrap:'wrap', gap:12 }}>
+        <span>© 2026 BundleFi — Built on Solana</span>
       </div>
     </div>
   )

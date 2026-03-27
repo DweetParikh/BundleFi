@@ -1,4 +1,3 @@
-// ── Seeded RNG for deterministic charts ──────────────────────────────────────
 function seededRand(seed) {
   let s = seed
   return () => {
@@ -22,7 +21,6 @@ export function generateChartData(start, totalGrowthPct, seed = 42) {
   return data
 }
 
-// ── Token master registry ─────────────────────────────────────────────────────
 export const TOKEN_META = {
   SOL:    { coingeckoId: 'solana',                  solanaMint: 'So11111111111111111111111111111111111111112',   fallbackPrice: 178.42   },
   JUP:    { coingeckoId: 'jupiter-exchange-solana', solanaMint: 'JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN', fallbackPrice: 1.24     },
@@ -58,21 +56,19 @@ export const TOKEN_META = {
   POPCAT: { coingeckoId: 'popcat',                  solanaMint: '7GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdC8uHYmW2hr',  fallbackPrice: 0.832    },
 }
 
-// ── Top 10 Performers (last 6 months) ─────────────────────────────────────────
 export const TOP_PERFORMERS = [
-  { symbol: 'SOL',    name: 'Solana',        change6m: 312.4, weight: 18, color: '#9945FF', icon: '◎'  },
-  { symbol: 'JUP',    name: 'Jupiter',       change6m: 287.1, weight: 14, color: '#00C2FF', icon: '♃'  },
-  { symbol: 'WIF',    name: 'dogwifhat',     change6m: 241.8, weight: 12, color: '#FF6B35', icon: '🎩' },
-  { symbol: 'BONK',   name: 'Bonk',          change6m: 198.3, weight: 11, color: '#FFB800', icon: '🔨' },
-  { symbol: 'PYTH',   name: 'Pyth Network',  change6m: 176.5, weight: 10, color: '#8B5CF6', icon: '⚡' },
-  { symbol: 'RENDER', name: 'Render',        change6m: 154.2, weight: 9,  color: '#EC4899', icon: '🖥'  },
-  { symbol: 'HNT',    name: 'Helium',        change6m: 143.7, weight: 8,  color: '#00D4FF', icon: '📡' },
-  { symbol: 'MNGO',   name: 'Mango Markets', change6m: 138.9, weight: 7,  color: '#FF8C00', icon: '🥭' },
-  { symbol: 'RAY',    name: 'Raydium',       change6m: 127.4, weight: 6,  color: '#00FF88', icon: '⚗'  },
-  { symbol: 'ORCA',   name: 'Orca',          change6m: 119.8, weight: 5,  color: '#00E0D3', icon: '🐋' },
+  { symbol: 'SOL',    name: 'Solana',        change6m: 312.4, weight: 18, color: '#9945FF'},
+  { symbol: 'JUP',    name: 'Jupiter',       change6m: 287.1, weight: 14, color: '#00C2FF'},
+  { symbol: 'WIF',    name: 'dogwifhat',     change6m: 241.8, weight: 12, color: '#FF6B35'},
+  { symbol: 'BONK',   name: 'Bonk',          change6m: 198.3, weight: 11, color: '#FFB800'},
+  { symbol: 'PYTH',   name: 'Pyth Network',  change6m: 176.5, weight: 10, color: '#8B5CF6'},
+  { symbol: 'RENDER', name: 'Render',        change6m: 154.2, weight: 9,  color: '#EC4899'},
+  { symbol: 'HNT',    name: 'Helium',        change6m: 143.7, weight: 8,  color: '#00D4FF'},
+  { symbol: 'MNGO',   name: 'Mango Markets', change6m: 138.9, weight: 7,  color: '#FF8C00'},
+  { symbol: 'RAY',    name: 'Raydium',       change6m: 127.4, weight: 6,  color: '#00FF88'},
+  { symbol: 'ORCA',   name: 'Orca',          change6m: 119.8, weight: 5,  color: '#00E0D3'},
 ]
 
-// ── Full crypto list ───────────────────────────────────────────────────────────
 export const ALL_CRYPTOS = [
   { symbol: 'BTC',    name: 'Bitcoin',        color: '#F7931A', icon: '₿'  },
   { symbol: 'ETH',    name: 'Ethereum',       color: '#627EEA', icon: 'Ξ'  },
@@ -125,11 +121,11 @@ export const CURATED_BUNDLES = [
     category: 'DeFi', risk: 'Medium',
     aum: 2_340_000, apy: 142.3, change7d: 8.1, change30d: 31.2,
     tokens: [
-      { symbol: 'RAY',  name: 'Raydium',      change6m: 127.4, weight: 22, color: '#00FF88', icon: '⚗'  },
-      { symbol: 'ORCA', name: 'Orca',          change6m: 119.8, weight: 20, color: '#00E0D3', icon: '🐋' },
-      { symbol: 'JUP',  name: 'Jupiter',       change6m: 287.1, weight: 22, color: '#00C2FF', icon: '♃'  },
-      { symbol: 'MNGO', name: 'Mango Markets', change6m: 138.9, weight: 16, color: '#FF8C00', icon: '🥭' },
-      { symbol: 'PYTH', name: 'Pyth Network',  change6m: 176.5, weight: 20, color: '#8B5CF6', icon: '⚡' },
+      { symbol: 'RAY',  name: 'Raydium',      change6m: 127.4, weight: 22, color: '#00FF88'},
+      { symbol: 'ORCA', name: 'Orca',          change6m: 119.8, weight: 20, color: '#00E0D3'},
+      { symbol: 'JUP',  name: 'Jupiter',       change6m: 287.1, weight: 22, color: '#00C2FF'},
+      { symbol: 'MNGO', name: 'Mango Markets', change6m: 138.9, weight: 16, color: '#FF8C00'},
+      { symbol: 'PYTH', name: 'Pyth Network',  change6m: 176.5, weight: 20, color: '#8B5CF6'},
     ],
     isOfficial: true, color: '#00C2FF',
     chartData: generateChartData(100, 142.3, 2),
@@ -142,10 +138,10 @@ export const CURATED_BUNDLES = [
     category: 'Meme', risk: 'Very High',
     aum: 891_000, apy: 421.8, change7d: 18.9, change30d: 87.4,
     tokens: [
-      { symbol: 'WIF',    name: 'dogwifhat', change6m: 241.8, weight: 30, color: '#FF6B35', icon: '🎩' },
-      { symbol: 'BONK',   name: 'Bonk',      change6m: 198.3, weight: 30, color: '#FFB800', icon: '🔨' },
-      { symbol: 'MYRO',   name: 'Myro',      change6m: 189.2, weight: 20, color: '#FF3366', icon: '🐶' },
-      { symbol: 'POPCAT', name: 'Popcat',    change6m: 162.4, weight: 20, color: '#FF9F00', icon: '😺' },
+      { symbol: 'WIF',    name: 'dogwifhat', change6m: 241.8, weight: 30, color: '#FF6B35'},
+      { symbol: 'BONK',   name: 'Bonk',      change6m: 198.3, weight: 30, color: '#FFB800'},
+      { symbol: 'MYRO',   name: 'Myro',      change6m: 189.2, weight: 20, color: '#FF3366'},
+      { symbol: 'POPCAT', name: 'Popcat',    change6m: 162.4, weight: 20, color: '#FF9F00'},
     ],
     isOfficial: true, color: '#FFB800',
     chartData: generateChartData(100, 421.8, 3),
@@ -158,10 +154,10 @@ export const CURATED_BUNDLES = [
     category: 'Conservative', risk: 'Low',
     aum: 7_210_000, apy: 68.4, change7d: 3.2, change30d: 14.1,
     tokens: [
-      { symbol: 'BTC', name: 'Bitcoin',  change6m: 68.4,  weight: 40, color: '#F7931A', icon: '₿' },
-      { symbol: 'ETH', name: 'Ethereum', change6m: 52.1,  weight: 30, color: '#627EEA', icon: 'Ξ' },
-      { symbol: 'SOL', name: 'Solana',   change6m: 312.4, weight: 20, color: '#9945FF', icon: '◎' },
-      { symbol: 'BNB', name: 'BNB',      change6m: 43.7,  weight: 10, color: '#F3BA2F', icon: '⬡' },
+      { symbol: 'BTC', name: 'Bitcoin',  change6m: 68.4,  weight: 40, color: '#F7931A'},
+      { symbol: 'ETH', name: 'Ethereum', change6m: 52.1,  weight: 30, color: '#627EEA'},
+      { symbol: 'SOL', name: 'Solana',   change6m: 312.4, weight: 20, color: '#9945FF'},
+      { symbol: 'BNB', name: 'BNB',      change6m: 43.7,  weight: 10, color: '#F3BA2F'},
     ],
     isOfficial: true, color: '#9945FF',
     chartData: generateChartData(100, 68.4, 4),
@@ -174,10 +170,10 @@ export const CURATED_BUNDLES = [
     category: 'Thematic', risk: 'High',
     aum: 1_650_000, apy: 198.7, change7d: 9.8, change30d: 42.3,
     tokens: [
-      { symbol: 'RENDER', name: 'Render',       change6m: 154.2, weight: 30, color: '#EC4899', icon: '🖥'  },
-      { symbol: 'HNT',    name: 'Helium',       change6m: 143.7, weight: 25, color: '#00D4FF', icon: '📡' },
-      { symbol: 'PYTH',   name: 'Pyth Network', change6m: 176.5, weight: 25, color: '#8B5CF6', icon: '⚡' },
-      { symbol: 'INJ',    name: 'Injective',    change6m: 121.3, weight: 20, color: '#00B2FF', icon: '💉' },
+      { symbol: 'RENDER', name: 'Render',       change6m: 154.2, weight: 30, color: '#EC4899'},
+      { symbol: 'HNT',    name: 'Helium',       change6m: 143.7, weight: 25, color: '#00D4FF'},
+      { symbol: 'PYTH',   name: 'Pyth Network', change6m: 176.5, weight: 25, color: '#8B5CF6'},
+      { symbol: 'INJ',    name: 'Injective',    change6m: 121.3, weight: 20, color: '#00B2FF'},
     ],
     isOfficial: true, color: '#EC4899',
     chartData: generateChartData(100, 198.7, 5),
