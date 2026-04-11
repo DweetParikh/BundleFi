@@ -22,7 +22,7 @@ export function generateChartData(start, totalGrowthPct, seed = 42) {
 }
 
 export const TOKEN_META = {
-  SOL:    { coingeckoId: 'solana',                  solanaMint: 'So11111111111111111111111111111111111111112',   fallbackPrice: 178.42   },
+  SOL:    { coingeckoId: 'solana',                  solanaMint: 'So11111111111111111111111111111111111111112', fallbackPrice: 178.42   },
   JUP:    { coingeckoId: 'jupiter-exchange-solana', solanaMint: 'JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN', fallbackPrice: 1.24     },
   WIF:    { coingeckoId: 'dogwifcoin',              solanaMint: 'EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm',fallbackPrice: 2.87     },
   BONK:   { coingeckoId: 'bonk',                    solanaMint: 'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263',fallbackPrice: 0.000041 },
@@ -32,8 +32,8 @@ export const TOKEN_META = {
   MNGO:   { coingeckoId: 'mango-markets',           solanaMint: 'MangoCzJ36AjZyKwVj3VnYU4GTonjfVEnJmvvWaxLac', fallbackPrice: 0.182    },
   RAY:    { coingeckoId: 'raydium',                 solanaMint: '4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R',fallbackPrice: 3.47     },
   ORCA:   { coingeckoId: 'orca',                    solanaMint: 'orcaEKTdK7LKz57vaAYr9QeNsVEPfiu6QeMU1kektZE', fallbackPrice: 3.91     },
-  BTC:    { coingeckoId: 'bitcoin',                 solanaMint: null,                                            fallbackPrice: 67420    },
-  ETH:    { coingeckoId: 'ethereum',                solanaMint: null,                                            fallbackPrice: 3521     },
+  BTC:    { coingeckoId: 'bitcoin',                 solanaMint: '3NZ9JMVqFvM4175E71uJ5sP2G1J93z3F9z5d6t95N7q', fallbackPrice: 67420    },
+  ETH:    { coingeckoId: 'ethereum',                solanaMint: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48', fallbackPrice: 3521     },
   BNB:    { coingeckoId: 'binancecoin',             solanaMint: null,                                            fallbackPrice: 412.30   },
   XRP:    { coingeckoId: 'ripple',                  solanaMint: null,                                            fallbackPrice: 0.623    },
   ADA:    { coingeckoId: 'cardano',                 solanaMint: null,                                            fallbackPrice: 0.512    },
