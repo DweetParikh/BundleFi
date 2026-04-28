@@ -15,8 +15,23 @@ import App from './App'
 import { AppProvider }   from './context/AppContext'
 import { PriceProvider } from './context/PriceContext'
 
+/**
+ * NETWORK: 'devnet'
+ *
+ * BundleFi is configured for Solana Devnet.
+ * - Wallet connections point to devnet RPC
+ * - Jupiter swap quotes use mainnet mints for accurate pricing
+ *   (Jupiter does not operate on devnet natively)
+ * - Transactions broadcast to devnet and are treated as simulations
+ *
+ * To switch to mainnet-beta:
+ *   1. Change NETWORK to 'mainnet-beta' here
+ *   2. Change SOLANA_NETWORK in src/services/jupiterSwap.js
+ */
+const NETWORK = 'devnet'
+
 function Root() {
-  const endpoint = useMemo(() => clusterApiUrl('mainnet-beta'), [])
+  const endpoint = useMemo(() => clusterApiUrl(NETWORK), [])
   const wallets  = useMemo(
     () => [new PhantomWalletAdapter(), new SolflareWalletAdapter()],
     []
