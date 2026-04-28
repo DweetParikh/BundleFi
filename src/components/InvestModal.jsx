@@ -1,11 +1,23 @@
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import { X, AlertTriangle, CheckCircle, Loader } from 'lucide-react'
 import { useApp } from '../context/AppContext'
+import { useConnection, useWallet } from '@solana/wallet-adapter-react'
+import { TOKEN_META } from '../data/mockData'
+import { executeJupiterSwap } from '../lib/jupiterSwap'
 
 const PRESETS = [10, 25, 50, 100, 250, 500]
 
 export default function InvestModal({ bundle, onClose }) {
   const { investInBundle } = useApp()
+  const { connection } = useConnection()
+  const { connected, publicKey, signTransaction } = useWallet()
+  const [txSig,     setTxSig]     = useState('')
+
+  const primarySwapMint = useMemo(() => {
+    const firstBundleToken = bundle.tokens.find(t => TOKEN_META[t.symbol]?.solanaMint)
+    return firstBundleToken ? TOKEN_META[firstBundleToken.symbol].solanaMint : null
+  }, [bundle.tokens])
+
   const [amount,    setAmount]    = useState('')
   const [step,      setStep]      = useState('input') // input | confirm | loading | success
   const [err,       setErr]       = useState('')
@@ -23,11 +35,36 @@ export default function InvestModal({ bundle, onClose }) {
   }
 
   const confirm = async () => {
-    setStep('loading')
-    // Simulate transaction delay
-    await new Promise(r => setTimeout(r, 1800))
-    investInBundle(bundle.id, numAmount)
-    setStep('success')
+    if (!connected || !publicKey) {
+      setErr('Connect your wallet to execute Jupiter swaps.')
+      setStep('input')
+      return
+    }
+
+    if (!primarySwapMint) {
+      setErr('This bundle has no Solana token mint configured for swap.')
+      setStep('input')
+      return
+    }
+
+    try {
+      setStep('loading')
+      setErr('')
+      const solInput = numAmount / (TOKEN_META.SOL.fallbackPrice || 1)
+      const { signature } = await executeJupiterSwap({
+        connection,
+        publicKey,
+        signTransaction,
+        outputMint: primarySwapMint,
+        inputAmountSol: solInput,
+      })
+      setTxSig(signature)
+      investInBundle(bundle.id, numAmount)
+      setStep('success')
+    } catch (e) {
+      setErr(e?.message || 'Swap failed. Please try again.')
+      setStep('input')
+    }
   }
 
   return (
@@ -185,7 +222,7 @@ export default function InvestModal({ bundle, onClose }) {
               }}>
                 <AlertTriangle size={16} color="var(--amber)" style={{ flexShrink:0, marginTop:2 }} />
                 <p style={{ fontSize:13, color:'var(--text-2)', lineHeight:1.6 }}>
-                  This will execute a transaction on Solana. Crypto investments carry risk.
+                  This will execute a Jupiter-routed swap transaction on Solana Devnet. Crypto investments carry risk.
                   Past performance does not guarantee future results.
                 </p>
               </div>
@@ -197,7 +234,7 @@ export default function InvestModal({ bundle, onClose }) {
               }}>
                 {[
                   { label:'Bundle',  value: bundle.name },
-                  { label:'Network', value: 'Solana Mainnet' },
+                  { label:'Network', value: 'Solana Devnet' },
                   { label:'Amount',  value: `$${numAmount.toFixed(2)}` },
                   { label:'Fee',     value: `$${fee.toFixed(2)}` },
                 ].map(r => (
@@ -260,8 +297,9 @@ export default function InvestModal({ bundle, onClose }) {
                 background:'var(--bg-card)', border:'1px solid var(--border)',
                 fontFamily:'var(--font-mono)', fontSize:12, color:'var(--text-3)',
                 marginBottom:20,
+                wordBreak:'break-all',
               }}>
-                TX: {Array.from({length:12}, () => Math.floor(Math.random()*16).toString(16)).join('')}...
+                TX: {txSig || '—'}
               </div>
               <button onClick={onClose} style={{
                 width:'100%', padding:'12px', borderRadius:'var(--r)', cursor:'pointer', border:'none',

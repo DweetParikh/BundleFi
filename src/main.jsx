@@ -16,7 +16,7 @@ import { AppProvider }   from './context/AppContext'
 import { PriceProvider } from './context/PriceContext'
 
 function Root() {
-  const endpoint = useMemo(() => clusterApiUrl('mainnet-beta'), [])
+  const endpoint = useMemo(() => clusterApiUrl('devnet'), [])
   const wallets  = useMemo(
     () => [new PhantomWalletAdapter(), new SolflareWalletAdapter()],
     []
