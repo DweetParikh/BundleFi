@@ -1,0 +1,90 @@
+// prisma/schema.prisma — BundleFi data model
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String     @id @default(cuid())
+  wallet    String     @unique
+  createdAt DateTime   @default(now())
+  bundles   Bundle[]
+  positions Position[]
+}
+
+model Bundle {
+  id            String        @id @default(cuid())
+  name          String
+  description   String
+  category      String
+  risk          String
+  color         String
+  isOfficial    Boolean       @default(false)
+  creatorId     String?
+  creator       User?         @relation(fields: [creatorId], references: [id])
+  tokens        BundleToken[]
+  positions     Position[]
+  aum           Float         @default(0)
+  investorCount Int           @default(0)
+  apy30d        Float?
+  change7d      Float?
+  minInvestment Float         @default(1)
+  inception     String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+model BundleToken {
+  id       String @id @default(cuid())
+  bundleId String
+  bundle   Bundle @relation(fields: [bundleId], references: [id], onDelete: Cascade)
+  symbol   String
+  name     String
+  weight   Int
+  color    String
+  icon     String
+}
+
+model Position {
+  id           String        @id @default(cuid())
+  userId       String
+  user         User          @relation(fields: [userId], references: [id])
+  bundleId     String
+  bundle       Bundle        @relation(fields: [bundleId], references: [id])
+  investedUsd  Float
+  shares       Float
+  transactions Transaction[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@unique([userId, bundleId])
+}
+
+model Transaction {
+  id          String   @id @default(cuid())
+  positionId  String
+  position    Position @relation(fields: [positionId], references: [id])
+  signature   String   @unique
+  solAmount   Float
+  usdAmount   Float
+  tokenSymbol String
+  status      String   // "confirmed" | "simulated" | "failed"
+  simulated   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}
+
+model PriceSnapshot {
+  id        String   @id @default(cuid())
+  symbol    String
+  priceUsd  Float
+  change24h Float?
+  source    String
+  timestamp DateTime @default(now())
+
+  @@index([symbol, timestamp])
+}
