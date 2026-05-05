@@ -29,6 +29,7 @@ import { PriceProvider } from './context/PriceContext'
  *   2. Change SOLANA_NETWORK in src/services/jupiterSwap.js
  */
 const NETWORK = 'devnet'
+//const NETWORK = 'mainnet-beta'
 
 function Root() {
   const endpoint = useMemo(() => clusterApiUrl(NETWORK), [])

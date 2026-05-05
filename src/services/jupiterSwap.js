@@ -32,6 +32,7 @@ const JUPITER_API = 'https://api.jup.ag/swap/v1'
 
 // Switch this to 'mainnet-beta' when deploying for real.
 export const SOLANA_NETWORK = 'devnet'
+//export const SOLANA_NETWORK = 'mainnet-beta'
 
 export const connection = new Connection(
   clusterApiUrl(SOLANA_NETWORK),
