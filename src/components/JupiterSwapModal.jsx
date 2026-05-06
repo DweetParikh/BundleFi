@@ -1,26 +1,3 @@
-/**
- * JupiterSwapModal.jsx
- *
- * Full-featured investment modal for BundleFi (Devnet).
- *
- * Steps:
- *   1. CONFIGURE  — enter SOL amount, slippage; request airdrop if needed
- *   2. FETCHING   — fetch per-token Jupiter quotes in parallel (for pricing only)
- *   3. REVIEW     — show route plan, price impact, expected output per token
- *   4. SIGNING    — ONE real SOL transfer tx is signed via wallet adapter
- *   5. SENDING    — broadcast to devnet + confirm
- *   6. DONE       — show real Explorer link + virtual token positions
- *
- * HOW THE INVESTMENT WORKS ON DEVNET:
- *   Jupiter swap pools don't exist on Devnet, so we can't execute real swaps.
- *   Instead:
- *     • Jupiter quotes are fetched from mainnet for accurate live pricing
- *     • ONE SystemProgram.transfer sends real devnet SOL → treasury wallet
- *     • Virtual token positions are calculated from the quote outAmounts
- *     • Portfolio tracks live P&L using PriceContext real-time prices
- *   The SOL transfer is real and verifiable on Solana Explorer (devnet).
- */
-
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useWallet, useConnection } from '@solana/wallet-adapter-react'
 import { LAMPORTS_PER_SOL }        from '@solana/web3.js'
@@ -348,15 +325,7 @@ export default function JupiterSwapModal({ bundle, onClose }) {
               }}>
                 Invest in Bundle
               </h2>
-              {/* DEVNET badge */}
-              <span style={{
-                padding: '2px 8px', borderRadius: 999,
-                background: 'rgba(255,184,0,0.12)',
-                border: '1px solid rgba(255,184,0,0.3)',
-                color: 'var(--amber)',
-                fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700,
-                letterSpacing: '0.06em',
-              }}>DEVNET</span>
+              
             </div>
             <div style={{ color: 'var(--text-3)', fontSize: 12, fontFamily: 'var(--font-mono)', marginTop: 2 }}>
               {bundle.name} · {bundle.tokens.length} tokens
@@ -381,8 +350,7 @@ export default function JupiterSwapModal({ bundle, onClose }) {
         }}>
           <Info size={13} color="var(--cyan)" style={{ flexShrink: 0, marginTop: 1 }} />
           <p style={{ fontSize: 12, color: 'var(--text-2)', lineHeight: 1.6, fontFamily: 'var(--font-mono)' }}>
-            <b style={{ color: 'var(--cyan)' }}>Real devnet investment.</b>{' '}
-            Jupiter quotes determine your token allocation at live prices.
+            <b style={{ color: 'var(--cyan)' }}></b>{' '}
             Your SOL transfer is real and verifiable on Solana Explorer.
           </p>
         </div>
