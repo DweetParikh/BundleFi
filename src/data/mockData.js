@@ -34,11 +34,11 @@ export const TOKEN_META = {
   ORCA:   { coingeckoId: 'orca',                    solanaMint: 'orcaEKTdK7LKz57vaAYr9QeNsVEPfiu6QeMU1kektZE', fallbackPrice: 3.91     },
   BTC:    { coingeckoId: 'bitcoin',                 solanaMint: '3NZ9JMVqFvM4175E71uJ5sP2G1J93z3F9z5d6t95N7q', fallbackPrice: 67420    },
   ETH:    { coingeckoId: 'ethereum',                solanaMint: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48', fallbackPrice: 3521     },
-  BNB:    { coingeckoId: 'binancecoin',             solanaMint: null,                                            fallbackPrice: 412.30   },
-  XRP:    { coingeckoId: 'ripple',                  solanaMint: null,                                            fallbackPrice: 0.623    },
+  BNB:    { coingeckoId: 'binancecoin',             solanaMint: '9gP2kCy3wA1ctvYWQk75guqXuHfrEomqydHLtcTCqiLa', fallbackPrice: 412.30   },
+  XRP:    { coingeckoId: 'ripple',                  solanaMint: 'Ga2AXHpfAF6mv2ekZwcsJFqu7wB4NV331qNH7fW9Nst8', fallbackPrice: 0.623    },
   ADA:    { coingeckoId: 'cardano',                 solanaMint: null,                                            fallbackPrice: 0.512    },
   AVAX:   { coingeckoId: 'avalanche-2',             solanaMint: null,                                            fallbackPrice: 38.70    },
-  DOGE:   { coingeckoId: 'dogecoin',                solanaMint: null,                                            fallbackPrice: 0.162    },
+  DOGE:   { coingeckoId: 'dogecoin',                solanaMint: 'AzZFACWtrLg1yMvS9n4t46qSRea22sM1n685511Wp247', fallbackPrice: 0.162    },
   DOT:    { coingeckoId: 'polkadot',                solanaMint: null,                                            fallbackPrice: 9.18     },
   MATIC:  { coingeckoId: 'matic-network',           solanaMint: null,                                            fallbackPrice: 0.912    },
   LINK:   { coingeckoId: 'chainlink',               solanaMint: null,                                            fallbackPrice: 18.40    },
@@ -112,7 +112,7 @@ export const CURATED_BUNDLES = [
     tokens: TOP_PERFORMERS,
     isOfficial: true, color: '#00FF88',
     chartData: generateChartData(100, 284.6, 1),
-    investors: 3841, minInvestment: 10, inception: '2024-01-15',
+    investors: 0, minInvestment: 10, inception: '2026-04-01',
   },
   {
     id: 'solana-defi',
@@ -125,11 +125,10 @@ export const CURATED_BUNDLES = [
       { symbol: 'ORCA', name: 'Orca',          change6m: 119.8, weight: 20, color: '#00E0D3'},
       { symbol: 'JUP',  name: 'Jupiter',       change6m: 287.1, weight: 22, color: '#00C2FF'},
       { symbol: 'MNGO', name: 'Mango Markets', change6m: 138.9, weight: 16, color: '#FF8C00'},
-      { symbol: 'PYTH', name: 'Pyth Network',  change6m: 176.5, weight: 20, color: '#8B5CF6'},
     ],
     isOfficial: true, color: '#00C2FF',
     chartData: generateChartData(100, 142.3, 2),
-    investors: 2104, minInvestment: 5, inception: '2024-02-01',
+    investors: 0, minInvestment: 5, inception: '2026-04-01',
   },
   {
     id: 'meme-lords',
@@ -145,7 +144,7 @@ export const CURATED_BUNDLES = [
     ],
     isOfficial: true, color: '#FFB800',
     chartData: generateChartData(100, 421.8, 3),
-    investors: 5612, minInvestment: 1, inception: '2024-03-10',
+    investors: 5612, minInvestment: 1, inception: '2026-04-01',
   },
   {
     id: 'blue-chip',
@@ -161,7 +160,7 @@ export const CURATED_BUNDLES = [
     ],
     isOfficial: true, color: '#9945FF',
     chartData: generateChartData(100, 68.4, 4),
-    investors: 8921, minInvestment: 20, inception: '2023-12-01',
+    investors: 8921, minInvestment: 20, inception: '2026-04-01',
   },
   {
     id: 'ai-infra',
@@ -177,7 +176,7 @@ export const CURATED_BUNDLES = [
     ],
     isOfficial: true, color: '#EC4899',
     chartData: generateChartData(100, 198.7, 5),
-    investors: 1872, minInvestment: 10, inception: '2024-02-15',
+    investors: 1872, minInvestment: 10, inception: '2026-04-01',
   },
 ]
 

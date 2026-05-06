@@ -3,7 +3,7 @@ import { TOKEN_META } from '../data/mockData'
 
 const PriceContext = createContext(null)
 
-const JUPITER_API    = 'https://api.jup.ag'
+const JUPITER_API    = 'https://api.jup.ag/price/v3'
 const COINGECKO_API  = 'https://api.coingecko.com/api/v3/simple/price'
 const JUP_INTERVAL   = 30_000
 const CG_INTERVAL    = 60_000   
