@@ -107,14 +107,7 @@ export default function Navbar() {
         <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 18 }}>
           Bundle<span style={{ color: 'var(--cyan)' }}>Fi</span>
         </span>
-        {/* Devnet badge */}
-        <span style={{
-          padding: '2px 7px', borderRadius: 999, fontSize: 9, fontWeight: 700,
-          background: 'rgba(255,184,0,0.12)', border: '1px solid rgba(255,184,0,0.3)',
-          color: 'var(--amber)', fontFamily: 'var(--font-mono)', letterSpacing: '0.08em',
-        }}>DEVNET</span>
       </Link>
-
       {/* Nav links */}
       <div style={{ display: 'flex', gap: 4, flex: 1 }}>
         {LINKS.map(({ to, icon: Icon, label }) => {
