@@ -103,6 +103,7 @@ export const ALL_CRYPTOS = [
   { symbol: 'INJ',    name: 'Injective',      color: '#00B2FF', icon: '💉'  },
   { symbol: 'TIA',    name: 'Celestia',       color: '#7B2FBE', icon: '🌌'  },
   { symbol: 'SEI',    name: 'Sei',            color: '#9D1D20', icon: '🔱'  },
+  { symbol: 'TRUMP',  name: 'official-trump', color: '#9D1D20', icon: '🔱'  }
 ]
 
 export const CURATED_BUNDLES = [

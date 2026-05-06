@@ -822,8 +822,8 @@ function ReviewStep({
           { label: 'USD Value',      value: solPrice > 0 ? `≈ $${usdTotal.toFixed(2)}` : '—', color: 'var(--cyan)'   },
           { label: 'Tokens Priced',  value: `${successQuotes.length} / ${bundle.tokens.length}`, color: 'var(--cyan)' },
           { label: 'Max Slippage',   value: `${activeSlipBps / 100}%`,                        color: 'var(--text-1)' },
-          { label: 'Transfer To',    value: 'Treasury Wallet',                                color: 'var(--amber)'  },
-          { label: 'Network',        value: 'Solana Devnet',                                  color: 'var(--amber)'  },
+          { label: 'Transfer To',    value: 'Bundle',                                color: 'var(--amber)'  },
+          { label: 'Network',        value: 'Solana',                                  color: 'var(--amber)'  },
         ].map(r => (
           <div key={r.label} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 7, color: 'var(--text-2)' }}>
             <span>{r.label}</span>
