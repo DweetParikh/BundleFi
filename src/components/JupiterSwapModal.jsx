@@ -1,31 +1,37 @@
 /**
  * JupiterSwapModal.jsx
  *
- * Full-featured Jupiter swap modal for BundleFi (Devnet).
+ * Full-featured investment modal for BundleFi (Devnet).
  *
  * Steps:
  *   1. CONFIGURE  — enter SOL amount, slippage; request airdrop if needed
- *   2. FETCHING   — fetch per-token Jupiter quotes in parallel
+ *   2. FETCHING   — fetch per-token Jupiter quotes in parallel (for pricing only)
  *   3. REVIEW     — show route plan, price impact, expected output per token
- *   4. SIGNING    — wallet adapter signs all transactions
- *   5. SENDING    — broadcast to devnet; confirm
- *   6. DONE       — success / devnet simulation result
+ *   4. SIGNING    — ONE real SOL transfer tx is signed via wallet adapter
+ *   5. SENDING    — broadcast to devnet + confirm
+ *   6. DONE       — show real Explorer link + virtual token positions
+ *
+ * HOW THE INVESTMENT WORKS ON DEVNET:
+ *   Jupiter swap pools don't exist on Devnet, so we can't execute real swaps.
+ *   Instead:
+ *     • Jupiter quotes are fetched from mainnet for accurate live pricing
+ *     • ONE SystemProgram.transfer sends real devnet SOL → treasury wallet
+ *     • Virtual token positions are calculated from the quote outAmounts
+ *     • Portfolio tracks live P&L using PriceContext real-time prices
+ *   The SOL transfer is real and verifiable on Solana Explorer (devnet).
  */
 
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useWallet, useConnection } from '@solana/wallet-adapter-react'
-import { LAMPORTS_PER_SOL } from '@solana/web3.js'
+import { LAMPORTS_PER_SOL }        from '@solana/web3.js'
 import {
   X, Zap, AlertTriangle, CheckCircle, Loader, ChevronDown, ChevronUp,
-  RefreshCw, Droplets, ArrowRight, Info, Activity,
+  RefreshCw, Droplets, ArrowRight, Info, ExternalLink,
 } from 'lucide-react'
 
 import {
   connection as devnetConnection,
   getBundleSwapQuotes,
-  buildSwapTransaction,
-  deserializeTransaction,
-  signAndSend,
   requestDevnetAirdrop,
   getWalletBalance,
   formatTokenAmount,
@@ -33,12 +39,19 @@ import {
   lamportsToSol,
   solToLamports,
   MAINNET_MINTS,
+  TOKEN_DECIMALS,
 } from '../services/jupiterSwap'
 
-import { useApp } from '../context/AppContext'
+import {
+  buildInvestTransaction,
+  sendInvestTransaction,
+} from '../services/solanaTransfer'
+
+import { useApp }    from '../context/AppContext'
+import { usePrices } from '../context/PriceContext'
 import { formatPrice } from '../data/mockData'
 
-// ─── constants ────────────────────────────────────────────────────────────────
+// ─── Constants ────────────────────────────────────────────────────────────────
 
 const SLIPPAGE_OPTIONS = [0.5, 1, 2, 3]
 
@@ -54,40 +67,38 @@ const STEPS = {
 // ─── JupiterSwapModal ─────────────────────────────────────────────────────────
 
 export default function JupiterSwapModal({ bundle, onClose }) {
-  const { publicKey, signTransaction, connected } = useWallet()
-  const { connection: walletConn } = useConnection()
-
-  // Use devnet connection (wallet connection also points to devnet after main.jsx change)
+  const { publicKey, signTransaction } = useWallet()
+  const { connection: walletConn }     = useConnection()
   const conn = walletConn ?? devnetConnection
 
   const { investInBundle, showNotif } = useApp()
+  const { getPrice }                  = usePrices()
 
   // ── UI state ──────────────────────────────────────────────────────────────
-  const [step,          setStep]          = useState(STEPS.CONFIGURE)
-  const [solInput,      setSolInput]      = useState('')
-  const [slippage,      setSlippage]      = useState(1)
-  const [customSlip,    setCustomSlip]    = useState('')
-  const [showSlipEdit,  setShowSlipEdit]  = useState(false)
-  const [expanded,      setExpanded]      = useState({})
-  const [error,         setError]         = useState('')
+  const [step,         setStep]         = useState(STEPS.CONFIGURE)
+  const [solInput,     setSolInput]     = useState('')
+  const [slippage,     setSlippage]     = useState(1)
+  const [customSlip,   setCustomSlip]   = useState('')
+  const [showSlipEdit, setShowSlipEdit] = useState(false)
+  const [expanded,     setExpanded]     = useState({})
+  const [error,        setError]        = useState('')
 
   // ── Wallet / balance state ────────────────────────────────────────────────
-  const [solBalance,    setSolBalance]    = useState(null)
+  const [solBalance,     setSolBalance]     = useState(null)
   const [airdropLoading, setAirdropLoading] = useState(false)
-  const [airdropDone,   setAirdropDone]   = useState(false)
+  const [airdropDone,    setAirdropDone]    = useState(false)
 
-  // ── Quote + tx state ──────────────────────────────────────────────────────
-  const [quoteResults,  setQuoteResults]  = useState([])   // [{token, solAmount, quote, error, skipped, isSOL}]
-  const [txResults,     setTxResults]     = useState([])   // [{symbol, signature, error, simulated}]
-  const [currentTx,     setCurrentTx]     = useState('')   // symbol being signed
+  // ── Quote + result state ──────────────────────────────────────────────────
+  const [quoteResults,    setQuoteResults]    = useState([])
+  const [investmentResult, setInvestmentResult] = useState(null) // { signature, virtualPositions, usdAmount }
 
   const abortRef = useRef(false)
 
-  // ── helpers ───────────────────────────────────────────────────────────────
+  // ── Derived values ────────────────────────────────────────────────────────
   const activeSlipBps = Math.round((customSlip ? parseFloat(customSlip) : slippage) * 100)
-
-  const solAmount = parseFloat(solInput) || 0
-  const lamports  = solToLamports(solAmount)
+  const solAmount     = parseFloat(solInput) || 0
+  const lamports      = solToLamports(solAmount)
+  const solPrice      = getPrice('SOL') || 0
 
   const swappableTokens = bundle.tokens.filter(
     t => t.symbol !== 'SOL' && MAINNET_MINTS[t.symbol],
@@ -96,15 +107,13 @@ export default function JupiterSwapModal({ bundle, onClose }) {
     t => t.symbol !== 'SOL' && !MAINNET_MINTS[t.symbol],
   )
 
-  // ── Fetch balance on mount + when publicKey changes ───────────────────────
+  // ── Balance polling ───────────────────────────────────────────────────────
   const refreshBalance = useCallback(async () => {
     if (!publicKey) return
     try {
       const bal = await getWalletBalance(publicKey, conn)
       setSolBalance(bal)
-    } catch {
-      // ignore
-    }
+    } catch { /* ignore */ }
   }, [publicKey, conn])
 
   useEffect(() => {
@@ -124,17 +133,17 @@ export default function JupiterSwapModal({ bundle, onClose }) {
       setAirdropDone(true)
       setTimeout(() => setAirdropDone(false), 3000)
     } catch (e) {
-      setError(`Airdrop failed: ${e.message}. Try again in 30 s (rate limited).`)
+      setError(`Airdrop failed: ${e.message}. Wait 30s and try again (rate limited).`)
     } finally {
       setAirdropLoading(false)
     }
   }
 
-  // ── Step 1 → 2: fetch quotes ───────────────────────────────────────────────
+  // ── Step 1 → 2: fetch Jupiter quotes ──────────────────────────────────────
   const fetchQuotes = async () => {
     if (!solAmount || solAmount <= 0) return setError('Enter a valid SOL amount')
     if (solBalance !== null && solAmount > solBalance * 0.98) {
-      return setError(`Insufficient balance. You have ${solBalance?.toFixed(4)} SOL`)
+      return setError(`Insufficient balance. You have ${solBalance?.toFixed(4)} SOL. Request an airdrop.`)
     }
     setError('')
     setStep(STEPS.FETCHING)
@@ -142,9 +151,9 @@ export default function JupiterSwapModal({ bundle, onClose }) {
 
     try {
       const results = await getBundleSwapQuotes({
-        bundleTokens: bundle.tokens,
+        bundleTokens:     bundle.tokens,
         totalSolLamports: lamports,
-        slippageBps: activeSlipBps,
+        slippageBps:      activeSlipBps,
       })
       if (abortRef.current) return
       setQuoteResults(results)
@@ -157,95 +166,133 @@ export default function JupiterSwapModal({ bundle, onClose }) {
     }
   }
 
-  // ── Step 3 → 4+5: execute swaps ───────────────────────────────────────────
-  const executeSwaps = async () => {
+  // ── Step 3 → 4+5: execute REAL SOL transfer + record virtual positions ────
+  const executeInvestment = async () => {
     if (!publicKey || !signTransaction) return
-    setStep(STEPS.SIGNING)
-    setTxResults([])
     setError('')
+    setStep(STEPS.SIGNING)
 
-    const toSwap = quoteResults.filter(r => r.quote && !r.skipped && !r.isSOL)
-    const done   = []
+    try {
+      // ── 1. Build the real SOL transfer transaction ───────────────────────
+      //    SystemProgram.transfer: user wallet → VITE_TREASURY_WALLET
+      let transaction, lastValidBlockHeight
+      try {
+        ;({ transaction, lastValidBlockHeight } = await buildInvestTransaction(
+          publicKey,
+          solAmount,
+          conn,
+        ))
+      } catch (e) {
+        setError(e.message)
+        setStep(STEPS.CONFIGURE)
+        return
+      }
 
-    for (const item of toSwap) {
-      if (abortRef.current) break
-      setCurrentTx(item.token.symbol)
+      // ── 2. Sign + broadcast + confirm on Solana Devnet ───────────────────
+      //    Real SOL leaves the user's wallet here.
+      let signature
+      setStep(STEPS.SIGNING)
 
       try {
-        // Build the swap transaction via Jupiter API
-        const swapData = await buildSwapTransaction({
-          quoteResponse:  item.quote,
-          userPublicKey:  publicKey,
+        signature = await sendInvestTransaction({
+          transaction,
+          lastValidBlockHeight,
+          signTransaction,
+          connection: conn,
         })
-
-        // Deserialise the base64 VersionedTransaction
-        const vTx = deserializeTransaction(swapData.swapTransaction)
-
-        setStep(STEPS.SIGNING)
-
-        // Ask wallet to sign
-        const signedTx = await signTransaction(vTx)
-
-        setStep(STEPS.SENDING)
-
-        // Send to devnet (will likely fail at simulation — that's expected on devnet)
-        let signature = null
-        let simulated = false
-
-        try {
-          signature = await signAndSend({
-            transaction: signedTx,
-            wallet:      { signTransaction: async (tx) => tx }, // already signed
-            conn,
-            lastValidBlockHeight: swapData.lastValidBlockHeight,
-          })
-
-          // Actually send — we need to re-implement since we already signed above
-          signature = await conn.sendRawTransaction(signedTx.serialize(), {
-            skipPreflight: true,
-            maxRetries: 2,
-          })
-
-          try {
-            const latest = await conn.getLatestBlockhash('confirmed')
-            await conn.confirmTransaction({
-              signature,
-              blockhash: latest.blockhash,
-              lastValidBlockHeight: swapData.lastValidBlockHeight ?? latest.lastValidBlockHeight,
-            }, 'confirmed')
-          } catch { /* devnet confirmation may timeout */ }
-
-        } catch (sendErr) {
-          // Expected on devnet — pools don't exist
-          simulated  = true
-          signature  = 'devnet-sim-' + Math.random().toString(36).slice(2, 14)
-        }
-
-        done.push({ symbol: item.token.symbol, signature, simulated })
-
       } catch (e) {
-        if (e.message?.includes('User rejected') || e.message?.includes('cancelled')) {
-          // User cancelled wallet signing
-          done.push({ symbol: item.token.symbol, signature: null, error: 'Cancelled by user' })
-          break
+        const msg = e?.message ?? ''
+
+        if (msg === 'USER_REJECTED') {
+          setError('Transaction cancelled.')
+          setStep(STEPS.CONFIGURE)
+          return
         }
-        // Network / build error
-        done.push({
-          symbol: item.token.symbol,
-          signature: 'devnet-sim-' + Math.random().toString(36).slice(2, 14),
-          simulated: true,
-        })
+
+        if (msg === 'INSUFFICIENT_BALANCE') {
+          setError('Insufficient SOL balance. Request an airdrop first.')
+          setStep(STEPS.CONFIGURE)
+          return
+        }
+
+        if (msg.includes('timed out') || msg.includes('block height')) {
+          setError('Transaction timed out. Check your connection and try again.')
+          setStep(STEPS.REVIEW)
+          return
+        }
+
+        setError(msg || 'Transaction failed. Please try again.')
+        setStep(STEPS.REVIEW)
+        return
       }
+
+      setStep(STEPS.SENDING)
+
+      // ── 3. Calculate virtual token positions from Jupiter quotes ──────────
+      //    outAmount from each quote tells us exactly how many tokens the user
+      //    "receives" at today's live prices — no second API call needed.
+      const usdAmount = solAmount * solPrice
+
+      const virtualPositions = quoteResults
+        .filter(r => r.quote && !r.skipped && !r.isSOL)
+        .map(r => {
+          const decimals    = TOKEN_DECIMALS[r.token.symbol] ?? 6
+          const tokenAmount = parseFloat(r.quote.outAmount) / Math.pow(10, decimals)
+          const tokenUsd    = (solAmount * r.token.weight / 100) * solPrice
+
+          return {
+            symbol:       r.token.symbol,
+            weight:       r.token.weight,
+            solAmount:    lamportsToSol(r.solAmount),
+            usdAmount:    tokenUsd,
+            tokenAmount,                               // virtual token amount
+            pricePerToken: tokenUsd / tokenAmount || 0, // implied price
+          }
+        })
+
+      // ── 4. Refresh balance so navbar/modal reflects the spend ─────────────
+      await refreshBalance()
+
+      // ── 5. Record investment in AppContext ────────────────────────────────
+      //    This updates Portfolio page with live P&L tracking.
+      investInBundle(bundle.id, usdAmount, virtualPositions, signature)
+
+      // ── 6. TODO: POST to backend /portfolio/invest (requires JWT auth) ────
+      //    Uncomment and wire up once wallet-signature auth is implemented:
+      //
+      // const jwtToken = localStorage.getItem('bundlefi_token')
+      // if (jwtToken) {
+      //   await fetch('http://localhost:3001/portfolio/invest', {
+      //     method: 'POST',
+      //     headers: {
+      //       'Content-Type':  'application/json',
+      //       'Authorization': `Bearer ${jwtToken}`,
+      //     },
+      //     body: JSON.stringify({
+      //       bundleId:     bundle.id,
+      //       solAmount,
+      //       usdAmount,
+      //       transactions: virtualPositions.map(p => ({
+      //         symbol:    p.symbol,
+      //         signature,          // same SOL tx signature for all tokens
+      //         simulated: false,   // it was a real SOL transfer
+      //         weight:    p.weight,
+      //         solAmount: p.solAmount,
+      //         usdAmount: p.usdAmount,
+      //       })),
+      //     }),
+      //   })
+      // }
+
+      // ── 7. Store result for DoneStep ──────────────────────────────────────
+      setInvestmentResult({ signature, virtualPositions, usdAmount })
+      setStep(STEPS.DONE)
+
+    } catch (e) {
+      console.error('[executeInvestment] Unexpected error:', e)
+      setError(e?.message ?? 'An unexpected error occurred. Please try again.')
+      setStep(STEPS.REVIEW)
     }
-
-    setTxResults(done)
-    setCurrentTx('')
-
-    // Record investment in app state
-    const usdAmount = solAmount * 178 // rough SOL/USD for demo
-    investInBundle(bundle.id, usdAmount)
-
-    setStep(STEPS.DONE)
   }
 
   // ── Close + cleanup ───────────────────────────────────────────────────────
@@ -254,13 +301,8 @@ export default function JupiterSwapModal({ bundle, onClose }) {
     onClose()
   }
 
-  // ─── Derived ──────────────────────────────────────────────────────────────
-  const totalOutTokens = quoteResults
-    .filter(r => r.quote)
-    .reduce((s, r) => s + (parseFloat(r.quote.outAmount ?? 0) / Math.pow(10, 6)), 0)
-
-  const successCount = txResults.filter(r => !r.error).length
-  const simulatedCount = txResults.filter(r => r.simulated).length
+  // ── Derived ───────────────────────────────────────────────────────────────
+  const successQuotes = quoteResults.filter(r => r.quote)
 
   // ─── Render ───────────────────────────────────────────────────────────────
   return (
@@ -304,9 +346,9 @@ export default function JupiterSwapModal({ bundle, onClose }) {
                 fontFamily: 'var(--font-display)', fontWeight: 700,
                 fontSize: 17, color: 'var(--text-1)',
               }}>
-                Swap via Jupiter
+                Invest in Bundle
               </h2>
-              {/* DEVNET BADGE */}
+              {/* DEVNET badge */}
               <span style={{
                 padding: '2px 8px', borderRadius: 999,
                 background: 'rgba(255,184,0,0.12)',
@@ -328,25 +370,25 @@ export default function JupiterSwapModal({ bundle, onClose }) {
           </button>
         </div>
 
-        {/* Devnet info banner */}
+        {/* How it works banner */}
         <div style={{
           margin: '14px 22px 0',
           padding: '10px 14px',
           borderRadius: 'var(--r)',
-          background: 'rgba(255,184,0,0.06)',
-          border: '1px solid rgba(255,184,0,0.2)',
+          background: 'rgba(0,212,255,0.05)',
+          border: '1px solid rgba(0,212,255,0.15)',
           display: 'flex', gap: 8, alignItems: 'flex-start',
         }}>
-          <Info size={13} color="var(--amber)" style={{ flexShrink: 0, marginTop: 1 }} />
+          <Info size={13} color="var(--cyan)" style={{ flexShrink: 0, marginTop: 1 }} />
           <p style={{ fontSize: 12, color: 'var(--text-2)', lineHeight: 1.6, fontFamily: 'var(--font-mono)' }}>
-            <b style={{ color: 'var(--amber)' }}>Devnet mode.</b> Real Jupiter quotes are fetched for accurate pricing.
-            Transactions are signed and broadcast to Solana Devnet — pools don't exist there, so swaps run as simulations. Switch to mainnet-beta to go live.
+            <b style={{ color: 'var(--cyan)' }}>Real devnet investment.</b>{' '}
+            Jupiter quotes determine your token allocation at live prices.
+            Your SOL transfer is real and verifiable on Solana Explorer.
           </p>
         </div>
 
         <div style={{ padding: '18px 22px 24px' }}>
 
-          {/* ── STEP: CONFIGURE ──────────────────────────────────────────── */}
           {step === STEPS.CONFIGURE && (
             <ConfigureStep
               bundle={bundle}
@@ -369,47 +411,38 @@ export default function JupiterSwapModal({ bundle, onClose }) {
               swappableCount={swappableTokens.length}
               skippedCount={skippedTokens.length}
               bundleColor={bundle.color}
+              solPrice={solPrice}
             />
           )}
 
-          {/* ── STEP: FETCHING QUOTES ─────────────────────────────────────── */}
           {step === STEPS.FETCHING && (
             <FetchingStep tokens={bundle.tokens} />
           )}
 
-          {/* ── STEP: REVIEW ──────────────────────────────────────────────── */}
           {step === STEPS.REVIEW && (
             <ReviewStep
               bundle={bundle}
               solAmount={solAmount}
+              solPrice={solPrice}
               quoteResults={quoteResults}
               activeSlipBps={activeSlipBps}
               expanded={expanded}
               setExpanded={setExpanded}
               onBack={() => setStep(STEPS.CONFIGURE)}
-              onConfirm={executeSwaps}
+              onConfirm={executeInvestment}
               error={error}
             />
           )}
 
-          {/* ── STEP: SIGNING / SENDING ───────────────────────────────────── */}
           {(step === STEPS.SIGNING || step === STEPS.SENDING) && (
-            <ExecutingStep
-              step={step}
-              currentTx={currentTx}
-              txResults={txResults}
-              total={quoteResults.filter(r => r.quote && !r.skipped && !r.isSOL).length}
-            />
+            <ExecutingStep step={step} />
           )}
 
-          {/* ── STEP: DONE ────────────────────────────────────────────────── */}
-          {step === STEPS.DONE && (
+          {step === STEPS.DONE && investmentResult && (
             <DoneStep
               bundle={bundle}
               solAmount={solAmount}
-              txResults={txResults}
-              successCount={successCount}
-              simulatedCount={simulatedCount}
+              investmentResult={investmentResult}
               onClose={handleClose}
             />
           )}
@@ -420,25 +453,25 @@ export default function JupiterSwapModal({ bundle, onClose }) {
   )
 }
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
+// ─── ConfigureStep ────────────────────────────────────────────────────────────
 
 function ConfigureStep({
   bundle, solInput, setSolInput, solBalance,
   slippage, setSlippage, customSlip, setCustomSlip,
   showSlipEdit, setShowSlipEdit, slippageOptions,
   airdropLoading, airdropDone, onAirdrop, onRefreshBalance,
-  onNext, error, swappableCount, skippedCount, bundleColor,
+  onNext, error, swappableCount, skippedCount, bundleColor, solPrice,
 }) {
   const solAmount = parseFloat(solInput) || 0
-  const canSwap   = solAmount > 0 && swappableCount > 0
+  const canInvest = solAmount > 0 && swappableCount > 0
+  const usdValue  = solAmount * solPrice
 
   return (
     <>
-      {/* SOL Balance Row */}
+      {/* SOL Balance row + airdrop */}
       <div style={{
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        marginBottom: 12,
-        padding: '10px 14px', borderRadius: 'var(--r)',
+        marginBottom: 12, padding: '10px 14px', borderRadius: 'var(--r)',
         background: 'var(--bg-card)', border: '1px solid var(--border)',
       }}>
         <div>
@@ -450,7 +483,7 @@ function ConfigureStep({
           </div>
         </div>
         <div style={{ display: 'flex', gap: 6 }}>
-          <button onClick={onRefreshBalance} title="Refresh balance" style={{
+          <button onClick={onRefreshBalance} title="Refresh" style={{
             padding: '6px 8px', borderRadius: 7, cursor: 'pointer',
             background: 'var(--bg-hover)', border: '1px solid var(--border)',
             color: 'var(--text-3)',
@@ -459,23 +492,29 @@ function ConfigureStep({
           </button>
           <button onClick={onAirdrop} disabled={airdropLoading} style={{
             display: 'flex', alignItems: 'center', gap: 6,
-            padding: '6px 12px', borderRadius: 7, cursor: 'pointer',
+            padding: '6px 12px', borderRadius: 7, cursor: airdropLoading ? 'not-allowed' : 'pointer',
             background: airdropDone ? 'var(--green-dim)' : 'rgba(255,184,0,0.1)',
             border: `1px solid ${airdropDone ? 'rgba(0,255,136,0.3)' : 'rgba(255,184,0,0.3)'}`,
             color: airdropDone ? 'var(--green)' : 'var(--amber)',
-            fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600,
-            transition: 'all .2s',
+            fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600, transition: 'all .2s',
           }}>
-            {airdropLoading ? <Loader size={11} style={{ animation: 'spin 1s linear infinite' }} /> : <Droplets size={11} />}
+            {airdropLoading
+              ? <Loader size={11} style={{ animation: 'spin 1s linear infinite' }} />
+              : <Droplets size={11} />}
             {airdropDone ? 'Got 1 SOL!' : airdropLoading ? 'Requesting…' : 'Airdrop 1 SOL'}
           </button>
         </div>
       </div>
 
-      {/* Amount input */}
+      {/* SOL amount input */}
       <div style={{ marginBottom: 14 }}>
         <label style={{ fontSize: 11, color: 'var(--text-3)', fontFamily: 'var(--font-mono)', display: 'block', marginBottom: 7, letterSpacing: '0.07em' }}>
           INVEST AMOUNT (SOL)
+          {solPrice > 0 && solAmount > 0 && (
+            <span style={{ color: 'var(--text-3)', marginLeft: 8, fontWeight: 400 }}>
+              ≈ ${usdValue.toFixed(2)} USD
+            </span>
+          )}
         </label>
         <div style={{ position: 'relative' }}>
           <span style={{
@@ -496,7 +535,7 @@ function ConfigureStep({
               fontFamily: 'var(--font-mono)', fontSize: 20, fontWeight: 700, outline: 'none',
             }}
             onFocus={e => e.target.style.borderColor = 'rgba(153,69,255,0.5)'}
-            onBlur={e => e.target.style.borderColor = 'var(--border-md)'}
+            onBlur={e  => e.target.style.borderColor = 'var(--border-md)'}
           />
           {solBalance !== null && (
             <button
@@ -528,10 +567,13 @@ function ConfigureStep({
       {/* Slippage */}
       <div style={{ marginBottom: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-          <label style={{ fontSize: 11, color: 'var(--text-3)', fontFamily: 'var(--font-mono)', letterSpacing: '0.07em' }}>SLIPPAGE TOLERANCE</label>
+          <label style={{ fontSize: 11, color: 'var(--text-3)', fontFamily: 'var(--font-mono)', letterSpacing: '0.07em' }}>
+            SLIPPAGE TOLERANCE
+          </label>
           <button onClick={() => setShowSlipEdit(s => !s)} style={{
             background: 'none', border: 'none', cursor: 'pointer',
-            color: 'var(--cyan)', fontFamily: 'var(--font-mono)', fontSize: 11, display: 'flex', alignItems: 'center', gap: 3,
+            color: 'var(--cyan)', fontFamily: 'var(--font-mono)', fontSize: 11,
+            display: 'flex', alignItems: 'center', gap: 3,
           }}>
             {showSlipEdit ? <ChevronUp size={12} /> : <ChevronDown size={12} />} Custom
           </button>
@@ -566,14 +608,15 @@ function ConfigureStep({
         )}
       </div>
 
-      {/* Bundle token summary */}
+      {/* Bundle breakdown */}
       <div style={{
         padding: '12px 14px', borderRadius: 'var(--r)',
         background: 'var(--bg-card)', border: '1px solid var(--border)',
-        marginBottom: 16,
-        fontFamily: 'var(--font-mono)', fontSize: 12,
+        marginBottom: 16, fontFamily: 'var(--font-mono)', fontSize: 12,
       }}>
-        <div style={{ color: 'var(--text-3)', marginBottom: 8, fontSize: 10, letterSpacing: '0.07em' }}>BUNDLE BREAKDOWN</div>
+        <div style={{ color: 'var(--text-3)', marginBottom: 8, fontSize: 10, letterSpacing: '0.07em' }}>
+          BUNDLE BREAKDOWN
+        </div>
         {bundle.tokens.slice(0, 6).map(t => {
           const hasMint = !!MAINNET_MINTS[t.symbol]
           return (
@@ -581,16 +624,22 @@ function ConfigureStep({
               <span style={{ color: t.color || 'var(--text-2)' }}>{t.icon} {t.symbol}</span>
               <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                 <span style={{ color: 'var(--text-3)' }}>{t.weight}%</span>
-                {solAmount > 0 && <span style={{ color: 'var(--text-1)' }}>◎{(solAmount * t.weight / 100).toFixed(4)}</span>}
-                {!hasMint && <span style={{ color: 'var(--text-3)', fontSize: 10, opacity: 0.6 }}>skip</span>}
+                {solAmount > 0 && (
+                  <span style={{ color: 'var(--text-1)' }}>◎{(solAmount * t.weight / 100).toFixed(4)}</span>
+                )}
+                {!hasMint && (
+                  <span style={{ color: 'var(--text-3)', fontSize: 10, opacity: 0.6 }}>skip</span>
+                )}
               </div>
             </div>
           )
         })}
-        {bundle.tokens.length > 6 && <div style={{ color: 'var(--text-3)', fontSize: 10 }}>+{bundle.tokens.length - 6} more tokens</div>}
+        {bundle.tokens.length > 6 && (
+          <div style={{ color: 'var(--text-3)', fontSize: 10 }}>+{bundle.tokens.length - 6} more tokens</div>
+        )}
         {skippedCount > 0 && (
           <div style={{ marginTop: 8, padding: '6px 8px', borderRadius: 6, background: 'rgba(255,184,0,0.06)', color: 'var(--amber)', fontSize: 10 }}>
-            ⚠ {skippedCount} non-Solana token{skippedCount > 1 ? 's' : ''} will be skipped (no Solana mint)
+            ⚠ {skippedCount} non-Solana token{skippedCount > 1 ? 's' : ''} will be skipped
           </div>
         )}
       </div>
@@ -608,14 +657,15 @@ function ConfigureStep({
 
       <button
         onClick={onNext}
-        disabled={!canSwap}
+        disabled={!canInvest}
         style={{
-          width: '100%', padding: '14px', borderRadius: 'var(--r)', cursor: canSwap ? 'pointer' : 'not-allowed',
-          background: canSwap
+          width: '100%', padding: '14px', borderRadius: 'var(--r)',
+          cursor: canInvest ? 'pointer' : 'not-allowed',
+          background: canInvest
             ? `linear-gradient(135deg, ${bundleColor || '#00d4ff'}35, ${bundleColor || '#00d4ff'}15)`
             : 'var(--bg-hover)',
-          border: `1px solid ${canSwap ? `${bundleColor || '#00d4ff'}60` : 'var(--border)'}`,
-          color: canSwap ? bundleColor || 'var(--cyan)' : 'var(--text-3)',
+          border: `1px solid ${canInvest ? `${bundleColor || '#00d4ff'}60` : 'var(--border)'}`,
+          color: canInvest ? bundleColor || 'var(--cyan)' : 'var(--text-3)',
           fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15,
           transition: 'all .2s',
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
@@ -628,25 +678,26 @@ function ConfigureStep({
   )
 }
 
+// ─── FetchingStep ─────────────────────────────────────────────────────────────
+
 function FetchingStep({ tokens }) {
   return (
     <div style={{ textAlign: 'center', padding: '32px 0' }}>
-      <div style={{ position: 'relative', width: 60, height: 60, margin: '0 auto 20px' }}>
-        <Loader
-          size={48}
-          color="var(--cyan)"
-          style={{ animation: 'spin 1s linear infinite', position: 'absolute', inset: 0, margin: 'auto' }}
-        />
-      </div>
+      <Loader size={48} color="var(--cyan)"
+        style={{ animation: 'spin 1s linear infinite', margin: '0 auto 20px', display: 'block' }} />
       <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16, marginBottom: 8 }}>
         Fetching Jupiter Quotes
       </div>
       <div style={{ color: 'var(--text-3)', fontSize: 12, fontFamily: 'var(--font-mono)', marginBottom: 20 }}>
-        Querying Metis routing engine for {tokens.filter(t => MAINNET_MINTS[t.symbol] && t.symbol !== 'SOL').length} token pairs…
+        Getting live prices for {tokens.filter(t => MAINNET_MINTS[t.symbol] && t.symbol !== 'SOL').length} tokens…
       </div>
       <div style={{ display: 'flex', justifyContent: 'center', gap: 6, flexWrap: 'wrap' }}>
         {tokens.slice(0, 8).map(t => (
-          <div key={t.symbol} style={{ padding: '3px 9px', borderRadius: 6, fontSize: 11, fontFamily: 'var(--font-mono)', color: t.color, background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+          <div key={t.symbol} style={{
+            padding: '3px 9px', borderRadius: 6, fontSize: 11,
+            fontFamily: 'var(--font-mono)', color: t.color,
+            background: 'var(--bg-card)', border: '1px solid var(--border)',
+          }}>
             {t.icon} {t.symbol}
           </div>
         ))}
@@ -655,25 +706,24 @@ function FetchingStep({ tokens }) {
   )
 }
 
+// ─── ReviewStep ───────────────────────────────────────────────────────────────
+
 function ReviewStep({
-  bundle, solAmount, quoteResults, activeSlipBps,
+  bundle, solAmount, solPrice, quoteResults, activeSlipBps,
   expanded, setExpanded, onBack, onConfirm, error,
 }) {
-  const toggleExpand = (sym) => setExpanded(p => ({ ...p, [sym]: !p[sym] }))
-
+  const toggleExpand  = sym => setExpanded(p => ({ ...p, [sym]: !p[sym] }))
   const successQuotes = quoteResults.filter(r => r.quote)
-  const totalSolUsed  = quoteResults.reduce((s, r) => s + (r.solAmount || 0), 0)
+  const usdTotal      = solAmount * solPrice
 
   return (
     <>
       <div style={{ marginBottom: 14 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
           <div style={{ fontSize: 11, color: 'var(--text-3)', fontFamily: 'var(--font-mono)', letterSpacing: '0.07em' }}>
-            JUPITER ROUTES — {successQuotes.length} QUOTES READY
+            JUPITER QUOTES — {successQuotes.length} READY
           </div>
-          <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--green)' }}>
-            ● LIVE
-          </span>
+          <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--green)' }}>● LIVE</span>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -712,23 +762,20 @@ function ReviewStep({
 
             return (
               <div key={item.token.symbol} style={{
-                borderRadius: 'var(--r)',
-                background: 'var(--bg-card)',
+                borderRadius: 'var(--r)', background: 'var(--bg-card)',
                 border: `1px solid ${item.token.color || 'var(--border)'}30`,
                 overflow: 'hidden',
               }}>
-                <div
-                  onClick={() => toggleExpand(item.token.symbol)}
-                  style={{
-                    padding: '11px 14px', cursor: 'pointer',
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                  }}
-                >
+                <div onClick={() => toggleExpand(item.token.symbol)} style={{
+                  padding: '11px 14px', cursor: 'pointer',
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span style={{ fontSize: 16 }}>{item.token.icon}</span>
                     <div>
                       <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13, color: item.token.color || 'var(--text-1)' }}>
-                        {item.token.symbol} <span style={{ color: 'var(--text-3)', fontWeight: 400, fontSize: 11 }}>{item.token.weight}%</span>
+                        {item.token.symbol}{' '}
+                        <span style={{ color: 'var(--text-3)', fontWeight: 400, fontSize: 11 }}>{item.token.weight}%</span>
                       </div>
                       <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-3)' }}>
                         ◎{lamportsToSol(item.solAmount).toFixed(4)} SOL in
@@ -748,18 +795,14 @@ function ReviewStep({
                   </div>
                 </div>
 
-                {/* Expanded route details */}
                 {isExpand && (
-                  <div style={{
-                    padding: '10px 14px 12px', borderTop: '1px solid var(--border)',
-                    background: 'var(--bg-card2)',
-                  }}>
+                  <div style={{ padding: '10px 14px 12px', borderTop: '1px solid var(--border)', background: 'var(--bg-card2)' }}>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10, fontFamily: 'var(--font-mono)', fontSize: 11 }}>
                       {[
                         { label: 'Min Received', value: `${minOut} ${item.token.symbol}` },
-                        { label: 'Slippage', value: `${activeSlipBps / 100}%` },
-                        { label: 'Route Hops', value: item.quote.routePlan?.length ?? 1 },
-                        { label: 'Time Taken', value: item.quote.timeTaken ? `${(item.quote.timeTaken * 1000).toFixed(0)}ms` : '—' },
+                        { label: 'Slippage',     value: `${activeSlipBps / 100}%` },
+                        { label: 'Route Hops',   value: item.quote.routePlan?.length ?? 1 },
+                        { label: 'Time Taken',   value: item.quote.timeTaken ? `${(item.quote.timeTaken * 1000).toFixed(0)}ms` : '—' },
                       ].map(r => (
                         <div key={r.label}>
                           <div style={{ color: 'var(--text-3)', marginBottom: 2 }}>{r.label}</div>
@@ -768,7 +811,6 @@ function ReviewStep({
                       ))}
                     </div>
 
-                    {/* Route plan */}
                     {item.quote.routePlan?.length > 0 && (
                       <div>
                         <div style={{ fontSize: 10, color: 'var(--text-3)', marginBottom: 6, letterSpacing: '0.05em' }}>ROUTE PLAN</div>
@@ -808,10 +850,12 @@ function ReviewStep({
         marginBottom: 14, fontFamily: 'var(--font-mono)', fontSize: 12,
       }}>
         {[
-          { label: 'Total SOL In',      value: `◎${solAmount.toFixed(4)}`,       color: 'var(--text-1)' },
-          { label: 'Tokens to Swap',    value: `${successQuotes.length} / ${bundle.tokens.length}`, color: 'var(--cyan)' },
-          { label: 'Max Slippage',      value: `${activeSlipBps / 100}%`,          color: 'var(--text-1)' },
-          { label: 'Network',           value: 'Solana Devnet',                    color: 'var(--amber)' },
+          { label: 'Total SOL In',   value: `◎${solAmount.toFixed(4)}`,                      color: 'var(--text-1)' },
+          { label: 'USD Value',      value: solPrice > 0 ? `≈ $${usdTotal.toFixed(2)}` : '—', color: 'var(--cyan)'   },
+          { label: 'Tokens Priced',  value: `${successQuotes.length} / ${bundle.tokens.length}`, color: 'var(--cyan)' },
+          { label: 'Max Slippage',   value: `${activeSlipBps / 100}%`,                        color: 'var(--text-1)' },
+          { label: 'Transfer To',    value: 'Treasury Wallet',                                color: 'var(--amber)'  },
+          { label: 'Network',        value: 'Solana Devnet',                                  color: 'var(--amber)'  },
         ].map(r => (
           <div key={r.label} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 7, color: 'var(--text-2)' }}>
             <span>{r.label}</span>
@@ -821,8 +865,13 @@ function ReviewStep({
       </div>
 
       {error && (
-        <div style={{ padding: '10px 14px', borderRadius: 'var(--r)', background: 'var(--red-dim)', border: '1px solid rgba(255,68,102,0.25)', color: 'var(--red)', fontSize: 12, marginBottom: 12, fontFamily: 'var(--font-mono)' }}>
-          {error}
+        <div style={{
+          padding: '10px 14px', borderRadius: 'var(--r)',
+          background: 'var(--red-dim)', border: '1px solid rgba(255,68,102,0.25)',
+          color: 'var(--red)', fontSize: 12, marginBottom: 12, fontFamily: 'var(--font-mono)',
+          display: 'flex', gap: 8, alignItems: 'center',
+        }}>
+          <AlertTriangle size={13} /> {error}
         </div>
       )}
 
@@ -832,122 +881,149 @@ function ReviewStep({
           background: 'var(--bg-hover)', border: '1px solid var(--border-md)',
           color: 'var(--text-2)', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 14,
         }}>← Back</button>
+
         <button onClick={onConfirm} disabled={successQuotes.length === 0} style={{
           flex: 2, padding: '12px', borderRadius: 'var(--r)', cursor: 'pointer',
-          background: successQuotes.length > 0 ? 'linear-gradient(135deg,rgba(0,255,136,0.25),rgba(0,255,136,0.1))' : 'var(--bg-hover)',
+          background: successQuotes.length > 0
+            ? 'linear-gradient(135deg,rgba(0,255,136,0.25),rgba(0,255,136,0.1))'
+            : 'var(--bg-hover)',
           border: `1px solid ${successQuotes.length > 0 ? 'rgba(0,255,136,0.4)' : 'var(--border)'}`,
           color: successQuotes.length > 0 ? 'var(--green)' : 'var(--text-3)',
           fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14,
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
         }}>
           <Zap size={15} />
-          Confirm & Swap {successQuotes.length} Token{successQuotes.length !== 1 ? 's' : ''}
+          Confirm &amp; Invest ◎{solAmount > 0 ? solAmount.toFixed(3) : '0'}
         </button>
       </div>
     </>
   )
 }
 
-function ExecutingStep({ step, currentTx, txResults, total }) {
-  return (
-    <div style={{ padding: '8px 0' }}>
-      <div style={{ textAlign: 'center', marginBottom: 24 }}>
-        <Loader size={40} color="var(--cyan)" style={{ animation: 'spin 1s linear infinite', margin: '0 auto 14px', display: 'block' }} />
-        <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16, marginBottom: 6 }}>
-          {step === 'signing' ? `Waiting for Wallet Signature` : `Broadcasting to Devnet`}
-        </div>
-        {currentTx && (
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--cyan)' }}>
-            {step === 'signing' ? 'Sign' : 'Sending'}: SOL → {currentTx}
-          </div>
-        )}
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-3)', marginTop: 4 }}>
-          {txResults.length} / {total} swaps done
-        </div>
-      </div>
+// ─── ExecutingStep ────────────────────────────────────────────────────────────
 
-      {txResults.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {txResults.map(r => (
-            <div key={r.symbol} style={{
-              padding: '8px 12px', borderRadius: 'var(--r)',
-              background: r.error ? 'var(--red-dim)' : 'var(--green-dim)',
-              border: `1px solid ${r.error ? 'rgba(255,68,102,0.25)' : 'rgba(0,255,136,0.2)'}`,
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              fontFamily: 'var(--font-mono)', fontSize: 12,
-            }}>
-              <span style={{ color: r.error ? 'var(--red)' : 'var(--green)' }}>
-                {r.error ? '✕' : '✓'} SOL → {r.symbol}
-              </span>
-              {r.simulated && !r.error && <span style={{ color: 'var(--amber)', fontSize: 10 }}>SIMULATED</span>}
-              {r.error && <span style={{ color: 'var(--red)', fontSize: 10 }}>{r.error}</span>}
-            </div>
-          ))}
-        </div>
-      )}
+function ExecutingStep({ step }) {
+  const label = step === STEPS.SIGNING
+    ? 'Waiting for wallet signature…'
+    : 'Broadcasting to Solana Devnet…'
+
+  const sub = step === STEPS.SIGNING
+    ? 'Check your Phantom / Solflare wallet and approve the transaction.'
+    : 'Your SOL transfer is being confirmed on-chain. This takes ~5s.'
+
+  return (
+    <div style={{ textAlign: 'center', padding: '40px 0' }}>
+      <Loader size={48} color="var(--cyan)"
+        style={{ animation: 'spin 1s linear infinite', margin: '0 auto 20px', display: 'block' }} />
+      <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16, marginBottom: 10 }}>
+        {label}
+      </div>
+      <div style={{ color: 'var(--text-3)', fontSize: 12, fontFamily: 'var(--font-mono)', lineHeight: 1.7, maxWidth: 340, margin: '0 auto' }}>
+        {sub}
+      </div>
     </div>
   )
 }
 
-function DoneStep({ bundle, solAmount, txResults, successCount, simulatedCount, onClose }) {
-  const allOk      = successCount === txResults.length && txResults.length > 0
-  const allSim     = simulatedCount === txResults.length && txResults.length > 0
-  const cancelled  = txResults.some(r => r.error === 'Cancelled by user')
+// ─── DoneStep ─────────────────────────────────────────────────────────────────
+
+function DoneStep({ bundle, solAmount, investmentResult, onClose }) {
+  const { signature, virtualPositions, usdAmount } = investmentResult
+  const explorerUrl = `https://explorer.solana.com/tx/${signature}?cluster=devnet`
 
   return (
     <div style={{ textAlign: 'center', padding: '16px 0' }}>
+      {/* Success icon */}
       <div style={{
         width: 68, height: 68, borderRadius: '50%', margin: '0 auto 18px',
-        background: allOk ? 'var(--green-dim)' : 'rgba(255,184,0,0.1)',
-        border: `2px solid ${allOk ? 'rgba(0,255,136,0.4)' : 'rgba(255,184,0,0.35)'}`,
+        background: 'var(--green-dim)',
+        border: '2px solid rgba(0,255,136,0.4)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
-        <CheckCircle size={34} color={allOk ? 'var(--green)' : 'var(--amber)'} />
+        <CheckCircle size={34} color="var(--green)" />
       </div>
 
       <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 20, marginBottom: 8 }}>
-        {cancelled ? 'Partially Cancelled' : allSim ? 'Devnet Simulation Complete' : 'Swaps Submitted!'}
+        Investment Complete! 🎉
       </h3>
 
-      <p style={{ color: 'var(--text-2)', fontSize: 13, marginBottom: 20, lineHeight: 1.6, fontFamily: 'var(--font-mono)' }}>
-        Invested <strong style={{ color: 'var(--green)' }}>◎{solAmount.toFixed(4)} SOL</strong> across {successCount}/{txResults.length} token swaps in <strong style={{ color: bundle.color || 'var(--cyan)' }}>{bundle.name}</strong>.
-        {allSim && <><br /><span style={{ color: 'var(--amber)' }}>⚠ Devnet — pools don't exist; transactions were simulated.</span></>}
+      <p style={{ color: 'var(--text-2)', fontSize: 13, marginBottom: 20, lineHeight: 1.7, fontFamily: 'var(--font-mono)' }}>
+        <strong style={{ color: 'var(--green)' }}>◎{solAmount.toFixed(4)} SOL</strong>
+        {usdAmount > 0 && (
+          <span style={{ color: 'var(--text-3)' }}> (≈ ${usdAmount.toFixed(2)})</span>
+        )}{' '}
+        deducted from your wallet and invested across{' '}
+        <strong style={{ color: bundle.color || 'var(--cyan)' }}>{bundle.name}</strong>
+        {' '}at live market prices.
       </p>
 
-      {/* TX list */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 20 }}>
-        {txResults.map(r => (
-          <div key={r.symbol} style={{
-            padding: '9px 14px', borderRadius: 'var(--r)',
-            background: r.error ? 'var(--red-dim)' : 'var(--bg-card)',
-            border: `1px solid ${r.error ? 'rgba(255,68,102,0.25)' : 'var(--border)'}`,
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-            fontFamily: 'var(--font-mono)', fontSize: 12, textAlign: 'left',
-          }}>
-            <span style={{ color: r.error ? 'var(--red)' : 'var(--text-1)' }}>
-              {r.error ? '✕' : '✓'} SOL → {r.symbol}
-            </span>
-            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-              {r.simulated && !r.error && (
-                <span style={{ fontSize: 10, color: 'var(--amber)', background: 'rgba(255,184,0,0.1)', padding: '1px 6px', borderRadius: 4 }}>SIM</span>
-              )}
-              {r.signature && !r.error && (
-                <span style={{ color: 'var(--text-3)', fontSize: 10 }}>
-                  {r.signature.slice(0, 8)}…
-                </span>
-              )}
-              {r.error && <span style={{ color: 'var(--red)', fontSize: 10 }}>{r.error}</span>}
-            </div>
-          </div>
-        ))}
+      {/* Real SOL transfer tx — verifiable on Solana Explorer */}
+      <div style={{
+        padding: '12px 14px', borderRadius: 'var(--r)',
+        background: 'var(--bg-card)', border: '1px solid var(--border)',
+        marginBottom: 14, fontFamily: 'var(--font-mono)', fontSize: 11, textAlign: 'left',
+      }}>
+        <div style={{ color: 'var(--text-3)', marginBottom: 6, fontSize: 10, letterSpacing: '0.07em' }}>
+          SOL TRANSFER — CONFIRMED ON DEVNET
+        </div>
+        <a
+          href={explorerUrl}
+          target="_blank"
+          rel="noreferrer"
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            color: 'var(--cyan)', textDecoration: 'none',
+            wordBreak: 'break-all', fontSize: 11,
+          }}
+        >
+          <ExternalLink size={11} style={{ flexShrink: 0 }} />
+          {signature.slice(0, 24)}…{signature.slice(-8)}
+        </a>
       </div>
 
+      {/* Virtual token positions */}
+      {virtualPositions.length > 0 && (
+        <div style={{ marginBottom: 20, textAlign: 'left' }}>
+          <div style={{ fontSize: 10, color: 'var(--text-3)', fontFamily: 'var(--font-mono)', marginBottom: 8, letterSpacing: '0.07em' }}>
+            VIRTUAL TOKEN POSITIONS (LIVE PRICES)
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {virtualPositions.map(p => (
+              <div key={p.symbol} style={{
+                padding: '9px 14px', borderRadius: 'var(--r)',
+                background: 'var(--bg-card)', border: '1px solid var(--border)',
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                fontFamily: 'var(--font-mono)', fontSize: 12,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ color: 'var(--green)', fontSize: 13 }}>✓</span>
+                  <span style={{ color: 'var(--text-1)', fontWeight: 600 }}>{p.symbol}</span>
+                  <span style={{ color: 'var(--text-3)', fontSize: 10 }}>{p.weight}%</span>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ color: 'var(--text-1)', fontWeight: 600 }}>
+                    ~{p.tokenAmount >= 1
+                        ? p.tokenAmount.toFixed(4)
+                        : p.tokenAmount.toFixed(6)
+                      } {p.symbol}
+                  </div>
+                  <div style={{ color: 'var(--text-3)', fontSize: 10 }}>
+                    ≈ ${p.usdAmount.toFixed(2)}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <button onClick={onClose} style={{
-        width: '100%', padding: '13px', borderRadius: 'var(--r)', cursor: 'pointer', border: 'none',
+        width: '100%', padding: '13px', borderRadius: 'var(--r)',
+        cursor: 'pointer', border: 'none',
         background: 'var(--green)', color: 'var(--bg-void)',
         fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15,
       }}>
-        Done ✓
+        View Portfolio →
       </button>
     </div>
   )
