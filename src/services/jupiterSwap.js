@@ -6,11 +6,8 @@ import {
   PublicKey,
 } from '@solana/web3.js'
 
-// ─── Endpoints ───────────────────────────────────────────────────────────────
-
 const JUPITER_API = 'https://api.jup.ag/swap/v1'
 
-// Switch this to 'mainnet-beta' when deploying for real.
 export const SOLANA_NETWORK = 'devnet'
 //export const SOLANA_NETWORK = 'mainnet-beta'
 
@@ -18,10 +15,6 @@ export const connection = new Connection(
   clusterApiUrl(SOLANA_NETWORK),
   'confirmed',
 )
-
-// ─── Mainnet token mints ──────────────────────────────────────────────────────
-// Jupiter Quote API requires mainnet mint addresses regardless of which
-// network you ultimately send the transaction on.
 
 export const MAINNET_MINTS = {
   SOL:    'So11111111111111111111111111111111111111112',
@@ -60,8 +53,6 @@ export const MAINNET_MINTS = {
   OP:     null,
 }
 
-// ─── Token decimal map ────────────────────────────────────────────────────────
-
 export const TOKEN_DECIMALS = {
   SOL:    9,
   USDC:   6,
@@ -80,15 +71,10 @@ export const TOKEN_DECIMALS = {
   POPCAT: 9,
 }
 
-// ─── Core helpers ─────────────────────────────────────────────────────────────
-
-/** Convert SOL to lamports */
 export const solToLamports = (sol) => Math.floor(sol * LAMPORTS_PER_SOL)
 
-/** Convert lamports to SOL */
 export const lamportsToSol = (lam) => lam / LAMPORTS_PER_SOL
 
-/** Format a raw token amount using its decimal precision */
 export function formatTokenAmount(rawAmount, symbol) {
   if (!rawAmount) return '0'
   const decimals = TOKEN_DECIMALS[symbol] ?? 6
@@ -100,11 +86,8 @@ export function formatTokenAmount(rawAmount, symbol) {
   return num.toExponential(2)
 }
 
-// ─── Jupiter Quote API ────────────────────────────────────────────────────────
-
 /**
  * Fetch the best route quote from Jupiter's Metis routing engine.
- *
  * @param {object} opts
  * @param {string} opts.inputMint    - mainnet mint address
  * @param {string} opts.outputMint   - mainnet mint address
@@ -141,11 +124,8 @@ export async function getJupiterQuote({
   return res.json()
 }
 
-// ─── Jupiter Swap Transaction Builder ────────────────────────────────────────
-
 /**
  * Build a serialized VersionedTransaction from a Jupiter quote.
- *
  * @param {object} opts
  * @param {object} opts.quoteResponse - result from getJupiterQuote()
  * @param {PublicKey|string} opts.userPublicKey
@@ -188,15 +168,12 @@ export function deserializeTransaction(base64Tx) {
   return VersionedTransaction.deserialize(buf)
 }
 
-// ─── Sign + Send ──────────────────────────────────────────────────────────────
-
 /**
  * Sign a VersionedTransaction with the wallet adapter and broadcast it.
  *
  * On devnet the tx will almost certainly fail because Jupiter's pools don't
  * exist there — the caller should handle the SimulationError / SendError
  * gracefully and treat it as a successful "devnet simulation" exercise.
- *
  * @param {object} opts
  * @param {VersionedTransaction} opts.transaction
  * @param {object}  opts.wallet                  - Solana wallet adapter
@@ -205,16 +182,11 @@ export function deserializeTransaction(base64Tx) {
  * @returns {Promise<string>} signature
  */
 export async function signAndSend({ transaction, wallet, conn, lastValidBlockHeight }) {
-  // 1. Sign
   const signed = await wallet.signTransaction(transaction)
-
-  // 2. Broadcast (skipPreflight allows devnet tx to land for simulation)
   const signature = await conn.sendRawTransaction(signed.serialize(), {
     skipPreflight: true,
     maxRetries: 2,
   })
-
-  // 3. Confirm (best-effort on devnet)
   try {
     const latest = await conn.getLatestBlockhash('confirmed')
     await conn.confirmTransaction(
@@ -226,13 +198,10 @@ export async function signAndSend({ transaction, wallet, conn, lastValidBlockHei
       'confirmed',
     )
   } catch {
-    // Devnet confirmation may timeout — still return the sig
   }
 
   return signature
 }
-
-// ─── Bundle helpers ───────────────────────────────────────────────────────────
 
 /**
  * Fetch Jupiter quotes for every token in a bundle, splitting a total SOL
@@ -256,7 +225,6 @@ export async function getBundleSwapQuotes({
       const weightFraction = token.weight / 100
       const solAmount = Math.floor(totalSolLamports * weightFraction)
 
-      // Native SOL allocation — no swap needed
       if (token.symbol === 'SOL') {
         return { token, solAmount, quote: null, isSOL: true }
       }
@@ -288,8 +256,6 @@ export async function getBundleSwapQuotes({
   )
 }
 
-// ─── Devnet utilities ─────────────────────────────────────────────────────────
-
 /**
  * Request 1 SOL airdrop on devnet (rate-limited by the RPC).
  * @param {PublicKey} publicKey
@@ -320,8 +286,6 @@ export async function getWalletBalance(publicKey, conn) {
   const lamports = await conn.getBalance(new PublicKey(publicKey.toString()))
   return lamportsToSol(lamports)
 }
-
-// ─── Price-impact helpers ─────────────────────────────────────────────────────
 
 /**
  * Parse the priceImpactPct from a quote and return a severity label.
