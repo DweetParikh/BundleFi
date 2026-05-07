@@ -28,8 +28,6 @@ import { useApp }    from '../context/AppContext'
 import { usePrices } from '../context/PriceContext'
 import { formatPrice } from '../data/mockData'
 
-// ─── Constants ────────────────────────────────────────────────────────────────
-
 const SLIPPAGE_OPTIONS = [0.5, 1, 2, 3]
 
 const STEPS = {
@@ -41,8 +39,6 @@ const STEPS = {
   DONE:      'done',
 }
 
-// ─── JupiterSwapModal ─────────────────────────────────────────────────────────
-
 export default function JupiterSwapModal({ bundle, onClose }) {
   const { publicKey, signTransaction } = useWallet()
   const { connection: walletConn }     = useConnection()
@@ -51,7 +47,6 @@ export default function JupiterSwapModal({ bundle, onClose }) {
   const { investInBundle, showNotif } = useApp()
   const { getPrice }                  = usePrices()
 
-  // ── UI state ──────────────────────────────────────────────────────────────
   const [step,         setStep]         = useState(STEPS.CONFIGURE)
   const [solInput,     setSolInput]     = useState('')
   const [slippage,     setSlippage]     = useState(1)
@@ -60,18 +55,15 @@ export default function JupiterSwapModal({ bundle, onClose }) {
   const [expanded,     setExpanded]     = useState({})
   const [error,        setError]        = useState('')
 
-  // ── Wallet / balance state ────────────────────────────────────────────────
   const [solBalance,     setSolBalance]     = useState(null)
   const [airdropLoading, setAirdropLoading] = useState(false)
   const [airdropDone,    setAirdropDone]    = useState(false)
 
-  // ── Quote + result state ──────────────────────────────────────────────────
   const [quoteResults,    setQuoteResults]    = useState([])
-  const [investmentResult, setInvestmentResult] = useState(null) // { signature, virtualPositions, usdAmount }
+  const [investmentResult, setInvestmentResult] = useState(null)
 
   const abortRef = useRef(false)
 
-  // ── Derived values ────────────────────────────────────────────────────────
   const activeSlipBps = Math.round((customSlip ? parseFloat(customSlip) : slippage) * 100)
   const solAmount     = parseFloat(solInput) || 0
   const lamports      = solToLamports(solAmount)
@@ -84,7 +76,6 @@ export default function JupiterSwapModal({ bundle, onClose }) {
     t => t.symbol !== 'SOL' && !MAINNET_MINTS[t.symbol],
   )
 
-  // ── Balance polling ───────────────────────────────────────────────────────
   const refreshBalance = useCallback(async () => {
     if (!publicKey) return
     try {
@@ -99,7 +90,6 @@ export default function JupiterSwapModal({ bundle, onClose }) {
     return () => clearInterval(id)
   }, [refreshBalance])
 
-  // ── Airdrop ───────────────────────────────────────────────────────────────
   const handleAirdrop = async () => {
     if (!publicKey || airdropLoading) return
     setAirdropLoading(true)
@@ -116,7 +106,6 @@ export default function JupiterSwapModal({ bundle, onClose }) {
     }
   }
 
-  // ── Step 1 → 2: fetch Jupiter quotes ──────────────────────────────────────
   const fetchQuotes = async () => {
     if (!solAmount || solAmount <= 0) return setError('Enter a valid SOL amount')
     if (solBalance !== null && solAmount > solBalance * 0.98) {
@@ -143,15 +132,12 @@ export default function JupiterSwapModal({ bundle, onClose }) {
     }
   }
 
-  // ── Step 3 → 4+5: execute REAL SOL transfer + record virtual positions ────
   const executeInvestment = async () => {
     if (!publicKey || !signTransaction) return
     setError('')
     setStep(STEPS.SIGNING)
 
     try {
-      // ── 1. Build the real SOL transfer transaction ───────────────────────
-      //    SystemProgram.transfer: user wallet → VITE_TREASURY_WALLET
       let transaction, lastValidBlockHeight
       try {
         ;({ transaction, lastValidBlockHeight } = await buildInvestTransaction(
@@ -165,8 +151,6 @@ export default function JupiterSwapModal({ bundle, onClose }) {
         return
       }
 
-      // ── 2. Sign + broadcast + confirm on Solana Devnet ───────────────────
-      //    Real SOL leaves the user's wallet here.
       let signature
       setStep(STEPS.SIGNING)
 
@@ -204,10 +188,6 @@ export default function JupiterSwapModal({ bundle, onClose }) {
       }
 
       setStep(STEPS.SENDING)
-
-      // ── 3. Calculate virtual token positions from Jupiter quotes ──────────
-      //    outAmount from each quote tells us exactly how many tokens the user
-      //    "receives" at today's live prices — no second API call needed.
       const usdAmount = solAmount * solPrice
 
       const virtualPositions = quoteResults
@@ -222,46 +202,40 @@ export default function JupiterSwapModal({ bundle, onClose }) {
             weight:       r.token.weight,
             solAmount:    lamportsToSol(r.solAmount),
             usdAmount:    tokenUsd,
-            tokenAmount,                               // virtual token amount
-            pricePerToken: tokenUsd / tokenAmount || 0, // implied price
+            tokenAmount,                               
+            pricePerToken: tokenUsd / tokenAmount || 0, 
           }
         })
 
-      // ── 4. Refresh balance so navbar/modal reflects the spend ─────────────
-      await refreshBalance()
 
-      // ── 5. Record investment in AppContext ────────────────────────────────
-      //    This updates Portfolio page with live P&L tracking.
+      await refreshBalance()
+      
       investInBundle(bundle.id, usdAmount, virtualPositions, signature)
 
-      // ── 6. TODO: POST to backend /portfolio/invest (requires JWT auth) ────
-      //    Uncomment and wire up once wallet-signature auth is implemented:
-      //
-      // const jwtToken = localStorage.getItem('bundlefi_token')
-      // if (jwtToken) {
-      //   await fetch('http://localhost:3001/portfolio/invest', {
-      //     method: 'POST',
-      //     headers: {
-      //       'Content-Type':  'application/json',
-      //       'Authorization': `Bearer ${jwtToken}`,
-      //     },
-      //     body: JSON.stringify({
-      //       bundleId:     bundle.id,
-      //       solAmount,
-      //       usdAmount,
-      //       transactions: virtualPositions.map(p => ({
-      //         symbol:    p.symbol,
-      //         signature,          // same SOL tx signature for all tokens
-      //         simulated: false,   // it was a real SOL transfer
-      //         weight:    p.weight,
-      //         solAmount: p.solAmount,
-      //         usdAmount: p.usdAmount,
-      //       })),
-      //     }),
-      //   })
-      // }
+      const jwtToken = localStorage.getItem('bundlefi_token')
+      if (jwtToken) {
+        await fetch('http://localhost:3001/portfolio/invest', {
+          method: 'POST',
+          headers: {
+            'Content-Type':  'application/json',
+            'Authorization': `Bearer ${jwtToken}`,
+          },
+          body: JSON.stringify({
+            bundleId:     bundle.id,
+            solAmount,
+            usdAmount,
+            transactions: virtualPositions.map(p => ({
+              symbol:    p.symbol,
+              signature,       
+              simulated: false,   
+              weight:    p.weight,
+              solAmount: p.solAmount,
+              usdAmount: p.usdAmount,
+            })),
+          }),
+        })
+      }
 
-      // ── 7. Store result for DoneStep ──────────────────────────────────────
       setInvestmentResult({ signature, virtualPositions, usdAmount })
       setStep(STEPS.DONE)
 
@@ -272,16 +246,13 @@ export default function JupiterSwapModal({ bundle, onClose }) {
     }
   }
 
-  // ── Close + cleanup ───────────────────────────────────────────────────────
   const handleClose = () => {
     abortRef.current = true
     onClose()
   }
 
-  // ── Derived ───────────────────────────────────────────────────────────────
   const successQuotes = quoteResults.filter(r => r.quote)
 
-  // ─── Render ───────────────────────────────────────────────────────────────
   return (
     <div
       onClick={e => { if (e.target === e.currentTarget) handleClose() }}
