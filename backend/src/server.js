@@ -1,9 +1,3 @@
-/**
- * server.js
- * BundleFi backend — Fastify application entry point.
- * Registers plugins, mounts routes, starts price worker, listens.
- */
-
 import 'dotenv/config'
 import Fastify           from 'fastify'
 import cors              from '@fastify/cors'
@@ -18,8 +12,6 @@ import portfolioRoutes from './routes/portfolio.js'
 import pricesRoutes    from './routes/prices.js'
 import analyticsRoutes from './routes/analytics.js'
 
-// ─── Build app ────────────────────────────────────────────────────────────────
-
 export function buildApp(opts = {}) {
   const fastify = Fastify({
     logger: {
@@ -31,19 +23,13 @@ export function buildApp(opts = {}) {
     ...opts,
   })
 
-  // ── Plugins ────────────────────────────────────────────────────────────────
-
-  // CORS
   fastify.register(cors, {
     origin:      process.env.CORS_ORIGIN || 'http://localhost:5173',
     credentials: true,
     methods:     ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   })
 
-  // Global rate limiting
   fastify.register(rateLimit, rateLimitConfig)
-
-  // ── Health check ───────────────────────────────────────────────────────────
 
   fastify.get('/health', async () => ({
     status:  'ok',
@@ -51,15 +37,11 @@ export function buildApp(opts = {}) {
     time:    new Date().toISOString(),
   }))
 
-  // ── Routes ─────────────────────────────────────────────────────────────────
-
   fastify.register(authRoutes,      { prefix: '/auth'      })
   fastify.register(bundleRoutes,    { prefix: '/'          })
   fastify.register(portfolioRoutes, { prefix: '/'          })
   fastify.register(pricesRoutes,    { prefix: '/'          })
   fastify.register(analyticsRoutes, { prefix: '/'          })
-
-  // ── Global error handler ───────────────────────────────────────────────────
 
   fastify.setErrorHandler((error, request, reply) => {
     fastify.log.error({ err: error, url: request.url }, 'Unhandled error')
@@ -77,8 +59,6 @@ export function buildApp(opts = {}) {
   return fastify
 }
 
-// ─── Start server ─────────────────────────────────────────────────────────────
-
 async function start() {
   const PORT = parseInt(process.env.PORT ?? '3001', 10)
   const HOST = process.env.HOST ?? '0.0.0.0'
@@ -90,7 +70,6 @@ async function start() {
     console.log(`\n🚀 BundleFi API running at http://localhost:${PORT}`)
     console.log(`   Health: http://localhost:${PORT}/health\n`)
 
-    // Start background price polling worker
     startPriceWorker()
   } catch (err) {
     app.log.error(err)
