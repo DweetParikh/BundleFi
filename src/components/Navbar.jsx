@@ -43,7 +43,6 @@ export default function Navbar() {
     return () => clearTimeout(t)
   }, [lastUpdated])
 
-  // Fetch devnet SOL balance
   useEffect(() => {
     if (!publicKey || SOLANA_NETWORK !== 'devnet') return
 
