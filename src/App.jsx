@@ -1,7 +1,6 @@
 import React from 'react'
 import { Routes, Route } from 'react-router-dom'
 import { useWallet } from '@solana/wallet-adapter-react'
-
 import Navbar       from './components/Navbar'
 import Landing      from './components/Landing'
 import Dashboard    from './components/Dashboard'
