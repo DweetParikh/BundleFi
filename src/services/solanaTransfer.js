@@ -1,21 +1,3 @@
-/**
- * solanaTransfer.js
- *
- * Handles the REAL devnet SOL transfer from the user's wallet
- * to the treasury wallet when a user invests in a bundle.
- *
- * Why SystemProgram.transfer instead of Jupiter swaps?
- *   Jupiter liquidity pools don't exist on Devnet. Attempting a real
- *   swap would always fail. Instead, we transfer the SOL to a treasury
- *   wallet and record virtual token positions using live Jupiter quote
- *   prices — giving users a real on-chain transaction they can verify
- *   on Solana Explorer, plus accurate portfolio tracking.
- *
- * Docs referenced:
- *   https://solana.com/docs/core/transactions
- *   https://solana.com/docs/clients/official/javascript
- */
-
 import {
   Transaction,
   SystemProgram,
@@ -23,12 +5,6 @@ import {
   LAMPORTS_PER_SOL,
 } from '@solana/web3.js'
 
-// ─── Treasury wallet ──────────────────────────────────────────────────────────
-
-/**
- * Get the treasury public key from the environment variable.
- * Throws a clear error if not configured so the dev knows immediately.
- */
 function getTreasuryPublicKey() {
   const addr = import.meta.env.VITE_TREASURY_WALLET
   if (!addr) {
@@ -46,8 +22,6 @@ function getTreasuryPublicKey() {
     )
   }
 }
-
-// ─── Build transaction ────────────────────────────────────────────────────────
 
 /**
  * Build a legacy SOL transfer Transaction from the user's wallet
@@ -68,13 +42,11 @@ export async function buildInvestTransaction(fromPubkey, solAmount, connection) 
   const treasury = getTreasuryPublicKey()
   const lamports  = Math.floor(solAmount * LAMPORTS_PER_SOL)
 
-  // Fetch a fresh blockhash for the transaction — required for all Solana txs
   const { blockhash, lastValidBlockHeight } =
     await connection.getLatestBlockhash('confirmed')
 
   const transaction = new Transaction()
 
-  // The only instruction: transfer SOL from user → treasury
   transaction.add(
     SystemProgram.transfer({
       fromPubkey,
@@ -83,15 +55,12 @@ export async function buildInvestTransaction(fromPubkey, solAmount, connection) 
     })
   )
 
-  // Required fields so the wallet adapter can sign and the network accepts it
   transaction.recentBlockhash      = blockhash
   transaction.lastValidBlockHeight = lastValidBlockHeight
   transaction.feePayer             = fromPubkey
 
   return { transaction, lastValidBlockHeight }
 }
-
-// ─── Sign + Send ──────────────────────────────────────────────────────────────
 
 /**
  * Sign the SOL transfer transaction with the user's wallet adapter,
@@ -114,8 +83,6 @@ export async function sendInvestTransaction({
   signTransaction,
   connection,
 }) {
-  // ── 1. Wallet signs the transaction ────────────────────────────────────────
-  // This triggers the Phantom / Solflare popup asking the user to approve.
   let signedTx
   try {
     signedTx = await signTransaction(transaction)
@@ -131,10 +98,6 @@ export async function sendInvestTransaction({
     }
     throw e
   }
-
-  // ── 2. Broadcast to Solana Devnet ──────────────────────────────────────────
-  // skipPreflight: false — we want the network to simulate first so we catch
-  // insufficient-balance errors before burning the tx fee.
   let signature
   try {
     signature = await connection.sendRawTransaction(signedTx.serialize(), {
@@ -144,15 +107,12 @@ export async function sendInvestTransaction({
     })
   } catch (e) {
     const msg = e?.message ?? ''
-    // 0x1 = generic instruction error on Solana, most commonly insufficient funds
     if (msg.includes('0x1') || msg.includes('insufficient')) {
       throw new Error('INSUFFICIENT_BALANCE')
     }
     throw e
   }
 
-  // ── 3. Confirm the transaction ─────────────────────────────────────────────
-  // Use the blockhash-based confirmation strategy — more reliable than polling.
   const { blockhash } = await connection.getLatestBlockhash('confirmed')
 
   try {
@@ -171,8 +131,6 @@ export async function sendInvestTransaction({
       )
     }
   } catch (e) {
-    // If the error is a timeout (BlockheightExceededError), the tx may still land.
-    // We still return the signature so the user can verify on Explorer.
     if (e?.message?.includes('block height exceeded') || e?.name === 'TransactionExpiredBlockheightExceededError') {
       console.warn('[solanaTransfer] Confirmation timed out — tx may still land:', signature)
       return signature
@@ -182,8 +140,6 @@ export async function sendInvestTransaction({
 
   return signature
 }
-
-// ─── Helper ───────────────────────────────────────────────────────────────────
 
 /**
  * Format a SOL amount in lamports to a human-readable SOL string.
