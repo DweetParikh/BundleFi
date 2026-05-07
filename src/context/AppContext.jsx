@@ -3,8 +3,6 @@ import { CURATED_BUNDLES, TOKEN_META } from '../data/mockData'
 import { usePrices } from './PriceContext'
 
 const AppContext = createContext(null)
-
-// Build fallback price map once at module level
 const TOKEN_META_FALLBACK = Object.fromEntries(
   Object.entries(TOKEN_META).map(([sym, m]) => [sym, m.fallbackPrice])
 )
@@ -22,16 +20,6 @@ export function AppProvider({ children }) {
     setTimeout(() => setNotification(null), 4000)
   }, [])
 
-  // ── investInBundle ─────────────────────────────────────────────────────────
-  //
-  // Updated signature:
-  //   investInBundle(bundleId, amountUSD, tokenPositions, txSignature)
-  //
-  // tokenPositions: Array of {
-  //   symbol, weight, solAmount, usdAmount, tokenAmount, pricePerToken
-  // }
-  // txSignature: The real on-chain Solana transaction signature string
-  //
   const investInBundle = useCallback((
     bundleId,
     amountUSD,
@@ -41,7 +29,7 @@ export function AppProvider({ children }) {
     const newTx = {
       signature:      txSignature,
       usdAmount:      amountUSD,
-      tokenPositions, // virtual token amounts at live prices
+      tokenPositions,
       timestamp:      Date.now(),
     }
 
@@ -49,7 +37,6 @@ export function AppProvider({ children }) {
       const existing = prev.find(p => p.bundleId === bundleId)
 
       if (existing) {
-        // Add to existing position
         return prev.map(p =>
           p.bundleId === bundleId
             ? {
@@ -62,8 +49,6 @@ export function AppProvider({ children }) {
             : p
         )
       }
-
-      // Create new position
       return [
         ...prev,
         {
@@ -78,8 +63,6 @@ export function AppProvider({ children }) {
 
     showNotif(`Invested $${amountUSD.toFixed(2)} successfully! ◎ SOL deducted from wallet.`)
   }, [showNotif])
-
-  // ── createBundle ───────────────────────────────────────────────────────────
 
   const createBundle = useCallback((bundle) => {
     const totalRaw = bundle.tokens.reduce((s, t) => s + (t.weight || 0), 0)
@@ -111,16 +94,12 @@ export function AppProvider({ children }) {
     return newBundle
   }, [showNotif])
 
-  // ── Derived state: portfolio with live NAV values ──────────────────────────
-
   const allBundles = [...CURATED_BUNDLES, ...userBundles]
 
   const portfolioWithValue = portfolio.map(pos => {
     const bundle = allBundles.find(b => b.id === pos.bundleId)
     if (!bundle) return { ...pos, currentValue: pos.invested, bundle: null }
 
-    // Compute bundle NAV multiplier using live prices vs fallback prices.
-    // navMultiplier > 1 means the bundle has gained value since investment.
     let navMultiplier = 1
     if (bundle.tokens.length > 0) {
       let totalWeight    = 0
