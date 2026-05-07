@@ -12,9 +12,7 @@ export default function Landing() {
 
   return (
     <div style={{ minHeight:'100vh', display:'flex', flexDirection:'column', position:'relative', zIndex:1 }}>
-      {/* Hero */}
       <div style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'120px 24px 80px', textAlign:'center' }}>
-        {/* Badge */}
         <div style={{
           display:'inline-flex', alignItems:'center', gap:8,
           padding:'6px 16px', borderRadius:999,
@@ -23,15 +21,9 @@ export default function Landing() {
           marginBottom:32, animation:'fadeUp .5s ease both', letterSpacing:'0.08em',
         }}>
           <div style={{ width:6, height:6, borderRadius:'50%', background:'var(--cyan)', animation:'blink 1.5s infinite' }} />
-          SOON LIVE ON SOLANA
-          {sources.coingecko || sources.jupiter ? (
-            <span style={{ color:'var(--green)', marginLeft:4 }}>· PRICES LIVE</span>
-          ) : loading ? (
-            <span style={{ color:'var(--amber)', marginLeft:4 }}>· FETCHING PRICES…</span>
-          ) : null}
+          LIVE ON SOLANA
         </div>
 
-        {/* Headline */}
         <h1 style={{
           fontFamily:'var(--font-display)', fontWeight:800,
           fontSize:'clamp(42px, 7vw, 88px)', lineHeight:1.05,
@@ -48,7 +40,6 @@ export default function Landing() {
           Invest in curated baskets of top-performing tokens with one click. Or build your own. No CEX. No KYC. Just your wallet.
         </p>
 
-        {/* CTA */}
         <div style={{ display:'flex', gap:14, flexWrap:'wrap', justifyContent:'center', animation:'fadeUp .5s .3s ease both' }}>
           <button onClick={() => setVisible(true)} style={{
             display:'flex', alignItems:'center', gap:10,
@@ -65,7 +56,6 @@ export default function Landing() {
           </button>
         </div>
 
-        {/* Stats */}
         <div style={{ display:'flex', gap:48, marginTop:80, flexWrap:'wrap', justifyContent:'center', animation:'fadeUp .5s .4s ease both' }}>
           {[
             { label:'AVG 6M RETURN', value:'+218%',   sub:'top performer bundle', green:true },
