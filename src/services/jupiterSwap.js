@@ -1,23 +1,3 @@
-/**
- * jupiterSwap.js
- * Jupiter Metis Swap API integration for BundleFi
- *
- * ⚠ DEVNET NOTE:
- *   Jupiter's routing engine runs on Solana mainnet only.
- *   On devnet we use mainnet mints to fetch real quotes and route plans
- *   (for accurate price data and UX), but actual transaction execution
- *   targets devnet RPC.  Devnet transactions will be rejected by the
- *   network because the token accounts / pools don't exist there —
- *   the modal surfaces this as "Devnet Simulation" so users can test
- *   the full signing flow without spending real funds.
- *   To go live, change the RPC endpoint to mainnet-beta.
- *
- * Docs:
- *   https://dev.jup.ag/docs/swap/get-quote
- *   https://dev.jup.ag/docs/swap/build-swap-transaction
- *   https://dev.jup.ag/docs/swap/send-swap-transaction
- */
-
 import {
   Connection,
   VersionedTransaction,
@@ -55,18 +35,19 @@ export const MAINNET_MINTS = {
   RAY:    '4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R',
   ORCA:   'orcaEKTdK7LKz57vaAYr9QeNsVEPfiu6QeMU1kektZE',
   MNGO:   'MangoCzJ36AjZyKwVj3VnYU4GTonjfVEnJmvvWaxLac',
-  BTC:    '3NZ9JMVqFvM4175E71uJ5sP2G1J93z3F9z5d6t95N7q',
-  ETH:    '7vfCXTUXx5WJV5JADk17DUJ4ksgau7utNKj4b963voxs',
-  MYRO:   'HhJpBhRRn4g56VsyLuT8DL5Bv31HkXqsrahTTUCZeZg',
+  BTC:    '3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh',
+  ETH:    '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
+  MYRO:   'HhJpBhRRn4g56VsyLuT8DL5Bv31HkXqsrahTTUCZeZg4',
   POPCAT: '7GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdC8uHYmW2hr',
-  INJ:    null, // not a Solana-native token
-  TIA:    null,
+  TRUMP:  '6p6xgHyF7AeE6TZkSmFsko444wqoP15icUSqi2jfGiPN',
+  PENGU:  '2zMMhcVQEXDtdE6vsFS7S7D5oUodfJHE8vd1gnBouauv',
+  TIA:    'secret1s9h6mrp4k9gll4zfv5h78ll68hdq8ml7jrnn20',
   SEI:    null,
   BNB:    null,
-  XRP:    null,
+  XRP:    'Ga2AXHpfAF6mv2ekZwcsJFqu7wB4NV331qNH7fW9Nst8',
   ADA:    null,
   AVAX:   null,
-  DOGE:   null,
+  DOGE:   'AzZFACWtrLg1yMvS9n4t46qSRea22sM1n685511Wp247',
   DOT:    null,
   MATIC:  null,
   LINK:   null,
