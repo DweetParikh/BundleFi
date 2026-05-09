@@ -25,8 +25,6 @@ export const TOKEN_META = {
   SOL:    { coingeckoId: 'solana',                  solanaMint: 'So11111111111111111111111111111111111111112',   fallbackPrice: 89.10    },
   JUP:    { coingeckoId: 'jupiter-exchange-solana', solanaMint: 'JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN',   fallbackPrice: 1.24     },
   WIF:    { coingeckoId: 'dogwifhat',               solanaMint: 'EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm',  fallbackPrice: 2.87     },
-  BONK:   { coingeckoId: 'bonk',                    solanaMint: 'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263',  fallbackPrice: 0.000041 },
-  PYTH:   { coingeckoId: 'pyth-network',            solanaMint: 'HZ1JovNiVvGrGs7LVPLq8H4ZZuH3FtyJGJ3eFo8CupkF',  fallbackPrice: 0.612    },
   RENDER: { coingeckoId: 'render',                  solanaMint: 'rndrizKT3MK1iimdxRdWabcF7Zg7AR5T4nud4EkHBof',   fallbackPrice: 8.94     },
   HNT:    { coingeckoId: 'helium',                  solanaMint: 'hntyVP6YFm1Hg25TN9WGLqM12b8TQmcknKrdu1oxWux',   fallbackPrice: 7.31     },
   MNGO:   { coingeckoId: 'pudgy-penguins',          solanaMint: '2zMMhcVQEXDtdE6vsFS7S7D5oUodfJHE8vd1gnBouauv',  fallbackPrice: 0.182    },
@@ -34,12 +32,13 @@ export const TOKEN_META = {
   ORCA:   { coingeckoId: 'orca',                    solanaMint: 'orcaEKTdK7LKz57vaAYr9QeNsVEPfiu6QeMU1kektZE',   fallbackPrice: 3.91     },
   BTC:    { coingeckoId: 'bitcoin',                 solanaMint: '3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh',  fallbackPrice: 67420    },
   ETH:    { coingeckoId: 'ethereum',                solanaMint: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',    fallbackPrice: 3521     },
-  BNB:    { coingeckoId: 'binancecoin',             solanaMint: '9gP2kCy3wA1ctvYWQk75guqXuHfrEomqydHLtcTCqiLa',  fallbackPrice: 412.30   },
+  BNB:    { coingeckoId: 'binancecoin',             solanaMint: '0xb8c77482e45f1f44de1745f52c74426c631bdd52',  fallbackPrice: 412.30   },
   XRP:    { coingeckoId: 'ripple',                  solanaMint: 'Ga2AXHpfAF6mv2ekZwcsJFqu7wB4NV331qNH7fW9Nst8',  fallbackPrice: 0.623    },
   MYRO:   { coingeckoId: 'myro',                    solanaMint: 'HhJpBhRRn4g56VsyLuT8DL5Bv31HkXqsrahTTUCZeZg4',  fallbackPrice: 0.048    },
   POPCAT: { coingeckoId: 'popcat',                  solanaMint: '7GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdC8uHYmW2hr',  fallbackPrice: 0.832    },
   PENGU:  { coingeckoId: 'pudgy-penguins',          solanaMint: '2zMMhcVQEXDtdE6vsFS7S7D5oUodfJHE8vd1gnBouauv',  fallbackPrice: 0.0108   },
   TRUMP:  { coingeckoId: 'official-trump',          solanaMint: '6p6xgHyF7AeE6TZkSmFsko444wqoP15icUSqi2jfGiPN',  fallbackPrice: 2.25     },
+  BONK:   { coingeckoId: 'bonk',                    solanaMint: 'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263',  fallbackPrice: 0.000000724},
   DOGE:   { coingeckoId: 'dogecoin',                solanaMint: 'AzZFACWtrLg1yMvS9n4t46qSRea22sM1n685511Wp247',  fallbackPrice: 0.113    },
   ADA:    { coingeckoId: 'cardano',                 solanaMint: null,                                            fallbackPrice: 0.512    },
   AVAX:   { coingeckoId: 'avalanche-2',             solanaMint: null,                                            fallbackPrice: 38.70    },
@@ -60,16 +59,16 @@ export const TOKEN_META = {
 }     
 
 export const TOP_PERFORMERS = [
-  { symbol: 'BTC',    name: 'Bitcoin',        change6m: 312.4, weight: 18, color: '#9945FF'},
-  { symbol: 'SOL',    name: 'Solana',        change6m: 312.4, weight: 18, color: '#9945FF'},
-  { symbol: 'JUP',    name: 'Jupiter',       change6m: 287.1, weight: 14, color: '#00C2FF'},
+  { symbol: 'BTC',    name: 'bitcoin',       change6m: 312.4, weight: 18, color: '#9945FF'},
+  { symbol: 'SOL',    name: 'solana',        change6m: 312.4, weight: 18, color: '#9945FF'},
+  { symbol: 'JUP',    name: 'jupiter-exchange-solana', change6m: 287.1, weight: 14, color: '#00C2FF'},
+  { symbol: 'TRUMP',  name: 'official-trump',change6m: 287.1, weight: 14, color: '#00C2FF'},
   { symbol: 'WIF',    name: 'dogwifhat',     change6m: 241.8, weight: 12, color: '#FF6B35'},
-  { symbol: 'PYTH',   name: 'Pyth Network',  change6m: 176.5, weight: 10, color: '#8B5CF6'},
-  { symbol: 'RENDER', name: 'Render',        change6m: 154.2, weight: 9,  color: '#EC4899'},
-  { symbol: 'HNT',    name: 'Helium',        change6m: 143.7, weight: 8,  color: '#00D4FF'},
-  { symbol: 'MNGO',   name: 'Mango Markets', change6m: 138.9, weight: 7,  color: '#FF8C00'},
-  { symbol: 'RAY',    name: 'Raydium',       change6m: 127.4, weight: 6,  color: '#00FF88'},
-  { symbol: 'ORCA',   name: 'Orca',          change6m: 119.8, weight: 5,  color: '#00E0D3'},
+  { symbol: 'RENDER', name: 'render',        change6m: 154.2, weight: 9,  color: '#EC4899'},
+  { symbol: 'HNT',    name: 'helium',        change6m: 143.7, weight: 8,  color: '#00D4FF'},
+  { symbol: 'MNGO',   name: 'pudgy-penguins', change6m: 138.9, weight: 7,  color: '#FF8C00'},
+  { symbol: 'RAY',    name: 'raydium',       change6m: 127.4, weight: 6,  color: '#00FF88'},
+  { symbol: 'ORCA',   name: 'orca',          change6m: 119.8, weight: 5,  color: '#00E0D3'},
 ]
 
 export const ALL_CRYPTOS = [
@@ -90,7 +89,6 @@ export const ALL_CRYPTOS = [
   { symbol: 'JUP',    name: 'Jupiter',        color: '#00C2FF', icon: '♃'  },
   { symbol: 'WIF',    name: 'dogwifhat',      color: '#FF6B35', icon: '🎩'  },
   { symbol: 'BONK',   name: 'bonk',           color: '#FFB800', icon: '🔨'  },
-  { symbol: 'PYTH',   name: 'Pyth Network',   color: '#8B5CF6', icon: '⚡'  },
   { symbol: 'RENDER', name: 'Render',         color: '#EC4899', icon: '🖥'   },
   { symbol: 'HNT',    name: 'Helium',         color: '#00D4FF', icon: '📡'  },
   { symbol: 'RAY',    name: 'Raydium',        color: '#00FF88', icon: '⚗'   },
@@ -144,6 +142,7 @@ export const CURATED_BUNDLES = [
       { symbol: 'BONK',   name: 'bonk',      change6m: 198.3, weight: 30, color: '#FFB800'},
       { symbol: 'POPCAT', name: 'Popcat',    change6m: 162.4, weight: 20, color: '#FF9F00'},
       { symbol: 'MYRO', name: 'myro',    change6m: 162.4, weight: 20, color: '#FF9F00'},
+      { symbol: 'TRUMP', name: 'official-TRUMP',    change6m: 7.5, weight: 20, color: '#ffea00'}
     ],
     isOfficial: true, color: '#FFB800',
     chartData: generateChartData(100, 421.8, 3),
@@ -174,7 +173,6 @@ export const CURATED_BUNDLES = [
     tokens: [
       { symbol: 'RENDER', name: 'Render',       change6m: 154.2, weight: 30, color: '#EC4899'},
       { symbol: 'HNT',    name: 'Helium',       change6m: 143.7, weight: 25, color: '#00D4FF'},
-      { symbol: 'PYTH',   name: 'Pyth Network', change6m: 176.5, weight: 25, color: '#8B5CF6'},
     ],
     isOfficial: true, color: '#EC4899',
     chartData: generateChartData(100, 198.7, 5),
