@@ -1,17 +1,48 @@
-import React, { createContext, useContext, useState, useCallback } from 'react'
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react'
 import { CURATED_BUNDLES, TOKEN_META } from '../data/mockData'
 import { usePrices } from './PriceContext'
 
 const AppContext = createContext(null)
+
 const TOKEN_META_FALLBACK = Object.fromEntries(
   Object.entries(TOKEN_META).map(([sym, m]) => [sym, m.fallbackPrice])
 )
 
+const LS_BUNDLES_KEY   = 'bundlefi_user_bundles'
+const LS_PORTFOLIO_KEY = 'bundlefi_portfolio'
+
+function loadFromStorage(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key)
+    return raw ? JSON.parse(raw) : fallback
+  } catch {
+    return fallback
+  }
+}
+
+function saveToStorage(key, value) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value))
+  } catch (err) {
+    console.warn('[BundleFi] Could not save "' + key + '" to localStorage:', err)
+  }
+}
+
+
 export function AppProvider({ children }) {
   const { getPrice } = usePrices()
-  const [userBundles,  setUserBundles]  = useState([])
-  const [portfolio,    setPortfolio]    = useState([])
+
+  const [userBundles,  setUserBundles]  = useState(() => loadFromStorage(LS_BUNDLES_KEY,   []))
+  const [portfolio,    setPortfolio]    = useState(() => loadFromStorage(LS_PORTFOLIO_KEY, []))
   const [notification, setNotification] = useState(null)
+
+  useEffect(() => {
+    saveToStorage(LS_BUNDLES_KEY, userBundles)
+  }, [userBundles])
+
+  useEffect(() => {
+    saveToStorage(LS_PORTFOLIO_KEY, portfolio)
+  }, [portfolio])
 
   // ── Notifications ──────────────────────────────────────────────────────────
 
@@ -19,6 +50,8 @@ export function AppProvider({ children }) {
     setNotification({ message, type, id: Date.now() })
     setTimeout(() => setNotification(null), 4000)
   }, [])
+
+  // ── Actions ────────────────────────────────────────────────────────────────
 
   const investInBundle = useCallback((
     bundleId,
@@ -61,7 +94,7 @@ export function AppProvider({ children }) {
       ]
     })
 
-    showNotif(`Invested $${amountUSD.toFixed(2)} successfully! ◎ SOL deducted from wallet.`)
+    showNotif('Invested $' + amountUSD.toFixed(2) + ' successfully! ◎ SOL deducted from wallet.')
   }, [showNotif])
 
   const createBundle = useCallback((bundle) => {
@@ -76,23 +109,25 @@ export function AppProvider({ children }) {
     const newBundle = {
       ...bundle,
       tokens,
-      id:           `user-${Date.now()}`,
-      isOfficial:   false,
-      aum:          0,
-      apy:          null,
-      change7d:     null,
-      change30d:    null,
-      investors:    1,
+      id:            'user-' + Date.now(),
+      isOfficial:    false,
+      aum:           0,
+      apy:           null,
+      change7d:      null,
+      change30d:     null,
+      investors:     1,
       minInvestment: 1,
-      chartData:    [],
-      category:     'Custom',
-      inception:    new Date().toISOString().slice(0, 10),
+      chartData:     [],
+      category:      'Custom',
+      inception:     new Date().toISOString().slice(0, 10),
     }
 
     setUserBundles(prev => [newBundle, ...prev])
-    showNotif(`Bundle "${bundle.name}" created!`)
+    showNotif('Bundle "' + bundle.name + '" created!')
     return newBundle
   }, [showNotif])
+
+  // ── Derived values ─────────────────────────────────────────────────────────
 
   const allBundles = [...CURATED_BUNDLES, ...userBundles]
 
@@ -124,8 +159,8 @@ export function AppProvider({ children }) {
     }
   })
 
-  const totalInvested     = portfolioWithValue.reduce((s, p) => s + p.invested,      0)
-  const totalCurrentValue = portfolioWithValue.reduce((s, p) => s + p.currentValue,  0)
+  const totalInvested     = portfolioWithValue.reduce((s, p) => s + p.invested,     0)
+  const totalCurrentValue = portfolioWithValue.reduce((s, p) => s + p.currentValue, 0)
   const totalPnL          = totalCurrentValue - totalInvested
   const totalPnLPct       = totalInvested > 0 ? (totalPnL / totalInvested) * 100 : 0
 
