@@ -22,7 +22,6 @@ export const MAINNET_MINTS = {
   JUP:    'JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN',
   WIF:    'EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm',
   BONK:   'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263',
-  PYTH:   'HZ1JovNiVvGrGs7LVPLq8H4ZZuH3FtyJGJ3eFo8CupkF',
   RENDER: 'rndrizKT3MK1iimdxRdWabcF7Zg7AR5T4nud4EkHBof',
   HNT:    'hntyVP6YFm1Hg25TN9WGLqM12b8TQmcknKrdu1oxWux',
   RAY:    '4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R',
@@ -35,6 +34,7 @@ export const MAINNET_MINTS = {
   TRUMP:  '6p6xgHyF7AeE6TZkSmFsko444wqoP15icUSqi2jfGiPN',
   PENGU:  '2zMMhcVQEXDtdE6vsFS7S7D5oUodfJHE8vd1gnBouauv',
   TIA:    'secret1s9h6mrp4k9gll4zfv5h78ll68hdq8ml7jrnn20',
+  BNB:    '0xb8c77482e45f1f44de1745f52c74426c631bdd52',
   SEI:    null,
   BNB:    null,
   XRP:    'Ga2AXHpfAF6mv2ekZwcsJFqu7wB4NV331qNH7fW9Nst8',
@@ -55,20 +55,20 @@ export const MAINNET_MINTS = {
 
 export const TOKEN_DECIMALS = {
   SOL:    9,
-  USDC:   6,
-  JUP:    6,
-  WIF:    6,
-  BONK:   5,
-  PYTH:   6,
-  RENDER: 8,
-  HNT:    8,
-  RAY:    6,
-  ORCA:   6,
-  MNGO:   6,
-  BTC:    8,
-  ETH:    8,
+  USDC:   9,
+  JUP:    9,
+  WIF:    9,
+  BONK:   9,
+  RENDER: 9,
+  HNT:    9,
+  RAY:    9,
+  ORCA:   9,
+  MNGO:   9,
+  BTC:    9,
+  ETH:    9,
   MYRO:   9,
   POPCAT: 9,
+  BNB:    9
 }
 
 export const solToLamports = (sol) => Math.floor(sol * LAMPORTS_PER_SOL)
@@ -206,8 +206,6 @@ export async function signAndSend({ transaction, wallet, conn, lastValidBlockHei
 /**
  * Fetch Jupiter quotes for every token in a bundle, splitting a total SOL
  * amount proportionally by weight.
- *
- * Tokens without a mainnet mint (non-Solana assets like BNB, XRP) are skipped.
  *
  * @param {object} opts
  * @param {Array}  opts.bundleTokens     - bundle.tokens array
