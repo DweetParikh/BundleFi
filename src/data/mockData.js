@@ -32,7 +32,7 @@ export const TOKEN_META = {
   ORCA:   { coingeckoId: 'orca',                    solanaMint: 'orcaEKTdK7LKz57vaAYr9QeNsVEPfiu6QeMU1kektZE',   fallbackPrice: 3.91     },
   BTC:    { coingeckoId: 'bitcoin',                 solanaMint: '3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh',  fallbackPrice: 67420    },
   ETH:    { coingeckoId: 'ethereum',                solanaMint: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',    fallbackPrice: 3521     },
-  BNB:    { coingeckoId: 'binancecoin',             solanaMint: '0xb8c77482e45f1f44de1745f52c74426c631bdd52',  fallbackPrice: 412.30   },
+  BNB:    { coingeckoId: 'binancecoin',             solanaMint: '0xb8c77482e45f1f44de1745f52c74426c631bdd52',    fallbackPrice: 412.30   },
   XRP:    { coingeckoId: 'ripple',                  solanaMint: 'Ga2AXHpfAF6mv2ekZwcsJFqu7wB4NV331qNH7fW9Nst8',  fallbackPrice: 0.623    },
   MYRO:   { coingeckoId: 'myro',                    solanaMint: 'HhJpBhRRn4g56VsyLuT8DL5Bv31HkXqsrahTTUCZeZg4',  fallbackPrice: 0.048    },
   POPCAT: { coingeckoId: 'popcat',                  solanaMint: '7GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdC8uHYmW2hr',  fallbackPrice: 0.832    },
