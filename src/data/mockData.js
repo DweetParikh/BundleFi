@@ -146,7 +146,7 @@ export const CURATED_BUNDLES = [
     ],
     isOfficial: true, color: '#FFB800',
     chartData: generateChartData(100, 421.8, 3),
-    investors: 5612, minInvestment: 1, inception: '2026-04-01',
+    investors: 0, minInvestment: 1, inception: '2026-04-01',
   },
   {
     id: 'blue-chip',
