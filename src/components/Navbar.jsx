@@ -2,16 +2,17 @@ import React, { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useWallet, useConnection } from '@solana/wallet-adapter-react'
 import { useWalletModal } from '@solana/wallet-adapter-react-ui'
-import { LayoutDashboard, Wallet, PlusCircle, ChevronDown, LogOut, Copy, Check, Activity, Droplets } from 'lucide-react'
+import { LayoutDashboard, Wallet, PlusCircle, ChevronDown, LogOut, Copy, Check, Activity, Droplets, Trophy } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { usePrices } from '../context/PriceContext'
 import { formatPrice } from '../data/mockData'
 import { getWalletBalance, requestDevnetAirdrop, SOLANA_NETWORK } from '../services/jupiterSwap'
 
 const LINKS = [
-  { to: '/',          icon: LayoutDashboard, label: 'Explore'       },
-  { to: '/portfolio', icon: Wallet,          label: 'Portfolio'     },
-  { to: '/create',    icon: PlusCircle,      label: 'Create Bundle' },
+  { to: '/',             icon: LayoutDashboard, label: 'Explore'       },
+  { to: '/leaderboard',  icon: Trophy,          label: 'Leaderboard'   },
+  { to: '/portfolio',    icon: Wallet,          label: 'Portfolio'     },
+  { to: '/create',       icon: PlusCircle,      label: 'Create Bundle' },
 ]
 
 export default function Navbar() {

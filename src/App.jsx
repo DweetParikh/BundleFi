@@ -7,6 +7,7 @@ import Dashboard    from './components/Dashboard'
 import BundleDetail from './components/BundleDetail'
 import CreateBundle from './components/CreateBundle'
 import Portfolio    from './components/Portfolio'
+import Leaderboard  from './components/Leaderboard'
 import Notification from './components/Notification'
 import { useApp }   from './context/AppContext'
 
@@ -23,11 +24,12 @@ export default function App() {
           <Navbar />
           <main style={{ paddingTop: 72, minHeight: '100vh', position: 'relative', zIndex: 1 }}>
             <Routes>
-              <Route path="/"        element={<Dashboard />}         />
-              <Route path="/bundle/:id" element={<BundleDetail />}   />
-              <Route path="/create"  element={<CreateBundle />}       />
-              <Route path="/portfolio" element={<Portfolio />}        />
-              <Route path="*"        element={<Dashboard />}          />
+              <Route path="/"             element={<Dashboard />}    />
+              <Route path="/bundle/:id"   element={<BundleDetail />} />
+              <Route path="/create"       element={<CreateBundle />} />
+              <Route path="/portfolio"    element={<Portfolio />}    />
+              <Route path="/leaderboard"  element={<Leaderboard />}  />
+              <Route path="*"             element={<Dashboard />}    />
             </Routes>
           </main>
         </>
