@@ -12,7 +12,7 @@ export default function Landing() {
 
   return (
     <div style={{ minHeight:'100vh', display:'flex', flexDirection:'column', position:'relative', zIndex:1 }}>
-      <div style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'120px 24px 80px', textAlign:'center' }}>
+      <div style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'48px 24px 40px', textAlign:'center' }}>
         <div style={{
           display:'inline-flex', alignItems:'center', gap:8,
           padding:'6px 16px', borderRadius:999,
@@ -26,8 +26,8 @@ export default function Landing() {
 
         <h1 style={{
           fontFamily:'var(--font-display)', fontWeight:800,
-          fontSize:'clamp(42px, 7vw, 88px)', lineHeight:1.05,
-          color:'var(--text-1)', marginBottom:24,
+          fontSize:'clamp(36px, 6vw, 76px)', lineHeight:1.05,
+          color:'var(--text-1)', marginBottom:16,
           animation:'fadeUp .5s .1s ease both',
         }}>
           Crypto Bundles.<br />
@@ -36,7 +36,7 @@ export default function Landing() {
           </span>
         </h1>
 
-        <p style={{ fontSize:'clamp(16px,2vw,20px)', color:'var(--text-2)', maxWidth:560, lineHeight:1.7, marginBottom:48, animation:'fadeUp .5s .2s ease both' }}>
+        <p style={{ fontSize:'clamp(14px,1.8vw,18px)', color:'var(--text-2)', maxWidth:520, lineHeight:1.6, marginBottom:28, animation:'fadeUp .5s .2s ease both' }}>
           Invest in curated baskets of top-performing tokens with one click. Or build your own. No CEX. No KYC. Just your wallet.
         </p>
 
@@ -56,14 +56,14 @@ export default function Landing() {
           </button>
         </div>
 
-        <div style={{ display:'flex', gap:48, marginTop:80, flexWrap:'wrap', justifyContent:'center', animation:'fadeUp .5s .4s ease both' }}>
+        <div style={{ display:'flex', gap:48, marginTop:44, flexWrap:'wrap', justifyContent:'center', animation:'fadeUp .5s .4s ease both' }}>
           {[
-            { label:'AVG 6M RETURN', value:'+218%',   sub:'top performer bundle', green:true },
-            { label:'LIVE PRICES',   value: sources.jupiter ? 'Jupiter' : sources.coingecko ? 'Jupiter' : '—', sub:'updated every 30s' },
-            { label:'CHAIN',         value:'Solana',  sub:'<0.01s finality'      },
+            { label:'AVG 6M RETURN', value:'+51.2%', green:true },
+            { label:'LIVE PRICES',   value: sources.jupiter ? 'Jupiter' : sources.coingecko ? 'Jupiter' : '—' },
+            { label:'CHAIN',         value:'Solana'},
           ].map(s => (
             <div key={s.label} style={{ textAlign:'center' }}>
-              <div style={{ fontFamily:'var(--font-mono)', fontSize:'clamp(22px,3vw,30px)', fontWeight:600, color: s.green ? 'var(--green)' : 'var(--text-1)' }}>
+              <div style={{ fontFamily:'var(--font-mono)', fontSize:'clamp(20px,2.5vw,26px)', fontWeight:600, color: s.green ? 'var(--green)' : 'var(--text-1)' }}>
                 {s.value}
               </div>
               <div style={{ color:'var(--text-3)', fontSize:11, marginTop:2, fontFamily:'var(--font-mono)', letterSpacing:'0.05em' }}>{s.label}</div>
@@ -97,7 +97,7 @@ export default function Landing() {
       </div>
 
       {/* Feature cards */}
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(240px,1fr))', gap:20, padding:'64px 32px 80px', maxWidth:900, margin:'0 auto', width:'100%' }}>
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(240px,1fr))', gap:16, padding:'40px 32px 52px', maxWidth:900, margin:'0 auto', width:'100%' }}>
         {[
           { icon:TrendingUp, color:'var(--green)',  title:'Top Performers Bundle',  desc:'Auto-curated from the 10 best assets over the last 6 months. Rebalanced monthly.' },
           { icon:BarChart2,  color:'var(--cyan)',   title:'Build Your Own Bundle',  desc:'Pick any crypto, set custom weights. Deploy your strategy on-chain in seconds.' },
@@ -105,7 +105,7 @@ export default function Landing() {
           { icon:Zap,        color:'var(--amber)',  title:'Live Price Feeds',       desc:'Prices pulled from Jupiter (Solana) + CoinGecko every 30 seconds — always fresh.' },
         ].map((f, i) => (
           <div key={i} style={{
-            padding:28, borderRadius:'var(--r-lg)',
+            padding:22, borderRadius:'var(--r-lg)',
             background:'var(--bg-card)', border:'1px solid var(--border)',
             animation:`fadeUp .5s ${0.1*i+0.5}s ease both`,
             transition:'border-color .2s, transform .2s',
