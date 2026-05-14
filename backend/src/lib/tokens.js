@@ -22,7 +22,7 @@ export const MINT_TO_SYMBOL = Object.fromEntries(
 export const COINGECKO_IDS = {
   SOL:    'solana',
   JUP:    'jupiter-exchange-solana',
-  WIF:    'dogwifhat',
+  WIF:    'dogwifcoin',
   BONK:   'bonk',
   PYTH:   'pyth-network',
   RENDER: 'render-token',
