@@ -73,6 +73,8 @@ model Transaction {
   solAmount   Float
   usdAmount   Float
   tokenSymbol String
+  /// "invest" | "withdraw"
+  type        String   @default("invest")
   status      String   // "confirmed" | "simulated" | "failed"
   simulated   Boolean  @default(false)
   createdAt   DateTime @default(now())
