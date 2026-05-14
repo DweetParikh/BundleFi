@@ -22,10 +22,10 @@ export function generateChartData(start, totalGrowthPct, seed = 42) {
 }
 
 export const TOKEN_META = {
-  SOL:    { coingeckoId: 'solana',                  solanaMint: 'So111111101111111111111111111111111111111112',   fallbackPrice: 89.10    },
+  SOL:    { coingeckoId: 'solana',                  solanaMint: 'So111111101111111111111111111111111111111112',  fallbackPrice: 89.10    },
   JUP:    { coingeckoId: 'jupiter-exchange-solana', solanaMint: 'JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN',   fallbackPrice: 1.24     },
-  WIF:    { coingeckoId: 'dogwifcoin',               solanaMint: 'EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm',  fallbackPrice: 2.87     },
-  RENDER: { coingeckoId: 'render-token',             solanaMint: 'rndrizKT3MK1iimdxRdWabcF7Zg7AR5T4nud4EkHBof',   fallbackPrice: 8.94     },
+  WIF:    { coingeckoId: 'dogwifcoin',              solanaMint: 'EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm',  fallbackPrice: 2.87     },
+  RENDER: { coingeckoId: 'render-token',            solanaMint: 'rndrizKT3MK1iimdxRdWabcF7Zg7AR5T4nud4EkHBof',   fallbackPrice: 8.94     },
   HNT:    { coingeckoId: 'helium',                  solanaMint: 'hntyVP6YFm1Hg25TN9WGLqM12b8TQmcknKrdu1oxWux',   fallbackPrice: 7.31     },
   MNGO:   { coingeckoId: 'mango-markets',           solanaMint: 'MangoCzJ36AjZyKwVj3VnYU4GTonjfVEnJmvvWaxLac',   fallbackPrice: 0.182    },
   RAY:    { coingeckoId: 'raydium',                 solanaMint: '4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R',  fallbackPrice: 3.47     },
