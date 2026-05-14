@@ -64,6 +64,7 @@ export function AppProvider({ children }) {
       usdAmount:      amountUSD,
       tokenPositions,
       timestamp:      Date.now(),
+      type:           'invest',
     }
 
     setPortfolio(prev => {
@@ -95,6 +96,57 @@ export function AppProvider({ children }) {
     })
 
     showNotif('Invested $' + amountUSD.toFixed(2) + ' successfully! ◎ SOL deducted from wallet.')
+  }, [showNotif])
+
+  /**
+   * Withdraw a portion (or all) of a position from a bundle.
+   * @param {string} bundleId
+   * @param {number} withdrawUSD   - USD amount to withdraw (≤ currentValue)
+   * @param {number} currentValue  - live current value of the position (used to compute share ratio)
+   * @param {string|null} txSignature
+   */
+  const withdrawFromBundle = useCallback((
+    bundleId,
+    withdrawUSD,
+    currentValue,
+    txSignature = null,
+  ) => {
+    setPortfolio(prev => {
+      const pos = prev.find(p => p.bundleId === bundleId)
+      if (!pos) return prev
+
+      // Fraction of the position being withdrawn (by current value)
+      const fraction = currentValue > 0 ? Math.min(withdrawUSD / currentValue, 1) : 1
+
+      const newInvested = pos.invested * (1 - fraction)
+      const newShares   = pos.shares   * (1 - fraction)
+
+      const withdrawTx = {
+        signature: txSignature,
+        usdAmount: withdrawUSD,
+        timestamp: Date.now(),
+        type:      'withdraw',
+      }
+
+      // Remove position entirely if fully withdrawn
+      if (newShares <= 0.0001) {
+        showNotif('Fully withdrawn from bundle. Funds returned to wallet.')
+        return prev.filter(p => p.bundleId !== bundleId)
+      }
+
+      showNotif('Withdrew $' + withdrawUSD.toFixed(2) + ' successfully! ◎ SOL returned to wallet.')
+      return prev.map(p =>
+        p.bundleId === bundleId
+          ? {
+              ...p,
+              invested:     newInvested,
+              shares:       newShares,
+              transactions: [...(p.transactions ?? []), withdrawTx],
+              timestamp:    Date.now(),
+            }
+          : p
+      )
+    })
   }, [showNotif])
 
   const createBundle = useCallback((bundle) => {
@@ -174,6 +226,7 @@ export function AppProvider({ children }) {
       totalPnL,
       totalPnLPct,
       investInBundle,
+      withdrawFromBundle,
       createBundle,
       notification,
       showNotif,

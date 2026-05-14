@@ -1,6 +1,9 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { TrendingUp, TrendingDown, Wallet, PlusCircle, BarChart2, Activity, RefreshCw } from 'lucide-react'
+import {
+  TrendingUp, TrendingDown, Wallet, PlusCircle, BarChart2,
+  Activity, RefreshCw, ArrowDownLeft, X, AlertTriangle,
+} from 'lucide-react'
 import { useApp }    from '../context/AppContext'
 import { usePrices } from '../context/PriceContext'
 import { formatCurrency, formatPercent, formatPrice } from '../data/mockData'
@@ -63,9 +66,263 @@ export default function Portfolio() {
   )
 }
 
+// ── Withdraw Modal ─────────────────────────────────────────────────────────────
+
+function WithdrawModal({ pos, onClose }) {
+  const { withdrawFromBundle } = useApp()
+  const [mode, setMode]         = useState('partial') // 'partial' | 'full'
+  const [inputUSD, setInputUSD] = useState('')
+  const [confirming, setConfirming] = useState(false)
+  const [done, setDone]         = useState(false)
+
+  const currentValue = pos.currentValue
+  const pnl          = currentValue - pos.invested
+  const pnlPositive  = pnl >= 0
+
+  const withdrawAmount = mode === 'full'
+    ? currentValue
+    : Math.min(parseFloat(inputUSD) || 0, currentValue)
+
+  const fraction = currentValue > 0 ? withdrawAmount / currentValue : 0
+  const remainingValue = currentValue - withdrawAmount
+
+  const isValid = withdrawAmount > 0 && withdrawAmount <= currentValue
+
+  const handleWithdraw = () => {
+    if (!isValid) return
+    if (!confirming) { setConfirming(true); return }
+    withdrawFromBundle(pos.bundleId, withdrawAmount, currentValue, null)
+    setDone(true)
+    setTimeout(onClose, 1800)
+  }
+
+  const accentColor = pos.bundle?.color || 'var(--cyan)'
+
+  return (
+    <div
+      style={{
+        position: 'fixed', inset: 0, zIndex: 1000,
+        background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(6px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: 16,
+      }}
+      onClick={e => { if (e.target === e.currentTarget) onClose() }}
+    >
+      <div style={{
+        width: '100%', maxWidth: 480,
+        background: 'var(--bg-card)',
+        border: `1px solid ${accentColor}40`,
+        borderRadius: 'var(--r-lg)',
+        padding: 28,
+        animation: 'fadeUp .25s ease both',
+      }}>
+        {/* Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 22 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 34, height: 34, borderRadius: 10, background: `${accentColor}18`, border: `1px solid ${accentColor}35`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <ArrowDownLeft size={16} color={accentColor} />
+            </div>
+            <div>
+              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16, color: 'var(--text-1)' }}>
+                Withdraw Funds
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--text-3)', fontFamily: 'var(--font-mono)' }}>
+                {pos.bundle?.name}
+              </div>
+            </div>
+          </div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-3)', padding: 4 }}>
+            <X size={18} />
+          </button>
+        </div>
+
+        {done ? (
+          <div style={{ textAlign: 'center', padding: '28px 0' }}>
+            <div style={{ fontSize: 40, marginBottom: 12 }}>✅</div>
+            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, color: 'var(--green)', marginBottom: 6 }}>
+              Withdrawal Successful
+            </div>
+            <div style={{ color: 'var(--text-2)', fontSize: 13 }}>
+              ${withdrawAmount.toFixed(2)} returned to your wallet.
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* Position summary */}
+            <div style={{
+              display: 'grid', gridTemplateColumns: '1fr 1fr',
+              gap: 10, marginBottom: 22,
+              padding: '14px 16px', borderRadius: 'var(--r)',
+              background: 'var(--bg-card2)', border: '1px solid var(--border)',
+              fontFamily: 'var(--font-mono)',
+            }}>
+              {[
+                { label: 'INVESTED',   value: `$${pos.invested.toFixed(2)}`,   color: 'var(--text-1)' },
+                { label: 'LIVE VALUE', value: `$${currentValue.toFixed(2)}`,   color: 'var(--cyan)' },
+                { label: 'P&L',        value: `${pnl >= 0 ? '+' : ''}$${Math.abs(pnl).toFixed(2)}`, color: pnlPositive ? 'var(--green)' : 'var(--red)' },
+                { label: 'AVAILABLE',  value: `$${currentValue.toFixed(2)}`,   color: 'var(--text-1)' },
+              ].map(s => (
+                <div key={s.label}>
+                  <div style={{ fontSize: 9, color: 'var(--text-3)', marginBottom: 3, letterSpacing: '0.07em' }}>{s.label}</div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: s.color }}>{s.value}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Mode toggle */}
+            <div style={{ display: 'flex', gap: 8, marginBottom: 18 }}>
+              {[['partial', 'Partial'], ['full', 'Full Exit']].map(([v, label]) => (
+                <button
+                  key={v}
+                  onClick={() => { setMode(v); setConfirming(false) }}
+                  style={{
+                    flex: 1, padding: '9px 0',
+                    borderRadius: 'var(--r)',
+                    border: mode === v ? `1px solid ${accentColor}60` : '1px solid var(--border)',
+                    background: mode === v ? `${accentColor}15` : 'var(--bg-card2)',
+                    color: mode === v ? accentColor : 'var(--text-2)',
+                    fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 600,
+                    cursor: 'pointer', transition: 'all .15s',
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {/* Amount input (partial only) */}
+            {mode === 'partial' && (
+              <div style={{ marginBottom: 18 }}>
+                <div style={{ fontSize: 10, color: 'var(--text-3)', fontFamily: 'var(--font-mono)', marginBottom: 8, letterSpacing: '0.07em' }}>
+                  WITHDRAWAL AMOUNT (USD)
+                </div>
+                <div style={{ position: 'relative' }}>
+                  <span style={{
+                    position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)',
+                    color: 'var(--text-3)', fontFamily: 'var(--font-mono)', fontSize: 14,
+                  }}>$</span>
+                  <input
+                    type="number"
+                    min="0.01"
+                    max={currentValue}
+                    step="0.01"
+                    placeholder="0.00"
+                    value={inputUSD}
+                    onChange={e => { setInputUSD(e.target.value); setConfirming(false) }}
+                    style={{
+                      width: '100%', padding: '12px 14px 12px 26px',
+                      background: 'var(--bg-card2)', border: '1px solid var(--border)',
+                      borderRadius: 'var(--r)', color: 'var(--text-1)',
+                      fontFamily: 'var(--font-mono)', fontSize: 15,
+                      outline: 'none', boxSizing: 'border-box',
+                    }}
+                  />
+                  <button
+                    onClick={() => { setInputUSD(currentValue.toFixed(2)); setConfirming(false) }}
+                    style={{
+                      position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
+                      padding: '3px 10px', borderRadius: 6,
+                      background: `${accentColor}18`, border: `1px solid ${accentColor}35`,
+                      color: accentColor, fontFamily: 'var(--font-mono)', fontSize: 10,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    MAX
+                  </button>
+                </div>
+                {/* Quick pct buttons */}
+                <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+                  {[25, 50, 75].map(pct => (
+                    <button
+                      key={pct}
+                      onClick={() => { setInputUSD((currentValue * pct / 100).toFixed(2)); setConfirming(false) }}
+                      style={{
+                        flex: 1, padding: '5px 0',
+                        borderRadius: 6, background: 'var(--bg-card2)',
+                        border: '1px solid var(--border)',
+                        color: 'var(--text-3)', fontFamily: 'var(--font-mono)', fontSize: 10,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {pct}%
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Summary row */}
+            {isValid && (
+              <div style={{
+                padding: '12px 14px', borderRadius: 'var(--r)',
+                background: 'var(--bg-card2)', border: '1px solid var(--border)',
+                marginBottom: 18, fontFamily: 'var(--font-mono)', fontSize: 12,
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <span style={{ color: 'var(--text-3)' }}>You receive</span>
+                  <span style={{ color: 'var(--green)', fontWeight: 600 }}>${withdrawAmount.toFixed(2)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <span style={{ color: 'var(--text-3)' }}>Share withdrawn</span>
+                  <span style={{ color: 'var(--text-1)' }}>{(fraction * 100).toFixed(1)}%</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: 'var(--text-3)' }}>Remaining value</span>
+                  <span style={{ color: 'var(--cyan)' }}>${remainingValue.toFixed(2)}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Confirm warning */}
+            {confirming && (
+              <div style={{
+                display: 'flex', alignItems: 'flex-start', gap: 8,
+                padding: '10px 14px', borderRadius: 'var(--r)',
+                background: 'rgba(255,170,0,0.08)', border: '1px solid rgba(255,170,0,0.25)',
+                marginBottom: 14,
+              }}>
+                <AlertTriangle size={14} color="var(--amber)" style={{ marginTop: 1, flexShrink: 0 }} />
+                <span style={{ fontSize: 11, color: 'var(--amber)', fontFamily: 'var(--font-mono)', lineHeight: 1.5 }}>
+                  {mode === 'full'
+                    ? 'This will close your entire position. Click Confirm Withdrawal to proceed.'
+                    : `Withdrawing $${withdrawAmount.toFixed(2)} from this bundle. Click Confirm Withdrawal to proceed.`}
+                </span>
+              </div>
+            )}
+
+            {/* CTA */}
+            <button
+              disabled={!isValid}
+              onClick={handleWithdraw}
+              style={{
+                width: '100%', padding: '13px 0',
+                borderRadius: 'var(--r)',
+                background: isValid ? (confirming ? 'var(--green)' : `${accentColor}20`) : 'var(--bg-card2)',
+                border: isValid ? `1px solid ${confirming ? 'var(--green)' : accentColor}60` : '1px solid var(--border)',
+                color: isValid ? (confirming ? '#000' : accentColor) : 'var(--text-3)',
+                fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14,
+                cursor: isValid ? 'pointer' : 'not-allowed',
+                transition: 'all .2s',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              }}
+            >
+              <ArrowDownLeft size={15} />
+              {confirming ? 'Confirm Withdrawal' : 'Withdraw Funds'}
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ── Position Card ──────────────────────────────────────────────────────────────
+
 function PositionCard({ pos, index }) {
   const { getPrice, getChange24h, getChange7d } = usePrices()
   const { bundle } = pos
+  const [showWithdraw, setShowWithdraw] = useState(false)
+
   if (!bundle) return null
 
   const pnl    = pos.currentValue - pos.invested
@@ -94,141 +351,166 @@ function PositionCard({ pos, index }) {
   })()
 
   return (
-    <div
-      style={{
-        padding: 24, borderRadius: 'var(--r-lg)',
-        background: 'var(--bg-card)', border: '1px solid var(--border)',
-        animation: `fadeUp .4s ${0.05 * index + 0.1}s ease both`,
-        transition: 'border-color .2s',
-      }}
-      onMouseEnter={e => e.currentTarget.style.borderColor = `${bundle.color || 'var(--cyan)'}55`}
-      onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
-    >
-      {/* Top row: bundle name + live period returns */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16, marginBottom: 16 }}>
-        <div style={{ flex: 1, minWidth: 200 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-            <div style={{ width: 8, height: 8, borderRadius: '50%', background: bundle.color || 'var(--cyan)' }} />
-            <Link
-              to={`/bundle/${bundle.id}`}
-              style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16, color: 'var(--text-1)', textDecoration: 'none', transition: 'color .15s' }}
-              onMouseEnter={e => e.currentTarget.style.color = 'var(--cyan)'}
-              onMouseLeave={e => e.currentTarget.style.color = 'var(--text-1)'}
-            >{bundle.name}</Link>
-            {!bundle.isOfficial && (
-              <span style={{ padding: '2px 8px', borderRadius: 999, fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--text-3)', background: 'var(--bg-hover)', border: '1px solid var(--border)' }}>CUSTOM</span>
-            )}
+    <>
+      <div
+        style={{
+          padding: 24, borderRadius: 'var(--r-lg)',
+          background: 'var(--bg-card)', border: '1px solid var(--border)',
+          animation: `fadeUp .4s ${0.05 * index + 0.1}s ease both`,
+          transition: 'border-color .2s',
+        }}
+        onMouseEnter={e => e.currentTarget.style.borderColor = `${bundle.color || 'var(--cyan)'}55`}
+        onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
+      >
+        {/* Top row: bundle name + live period returns */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16, marginBottom: 16 }}>
+          <div style={{ flex: 1, minWidth: 200 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+              <div style={{ width: 8, height: 8, borderRadius: '50%', background: bundle.color || 'var(--cyan)' }} />
+              <Link
+                to={`/bundle/${bundle.id}`}
+                style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16, color: 'var(--text-1)', textDecoration: 'none', transition: 'color .15s' }}
+                onMouseEnter={e => e.currentTarget.style.color = 'var(--cyan)'}
+                onMouseLeave={e => e.currentTarget.style.color = 'var(--text-1)'}
+              >{bundle.name}</Link>
+              {!bundle.isOfficial && (
+                <span style={{ padding: '2px 8px', borderRadius: 999, fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--text-3)', background: 'var(--bg-hover)', border: '1px solid var(--border)' }}>CUSTOM</span>
+              )}
+            </div>
+
+            {/* Period return badges */}
+            <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
+              {bundleChange6m != null && (
+                <span style={{
+                  padding: '3px 10px', borderRadius: 999, fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 600,
+                  background: bundleChange6m >= 0 ? 'var(--green-dim)' : 'rgba(255,51,102,0.1)',
+                  color: bundleChange6m >= 0 ? 'var(--green)' : 'var(--red)',
+                  border: `1px solid ${bundleChange6m >= 0 ? 'rgba(0,255,136,0.25)' : 'rgba(255,51,102,0.25)'}`,
+                }}>
+                  {bundleChange6m >= 0 ? '▲' : '▼'} {Math.abs(bundleChange6m).toFixed(1)}% <span style={{ opacity: 0.7, fontSize: 9 }}>6M</span>
+                </span>
+              )}
+              {bundleChange7d != null && (
+                <span style={{
+                  padding: '3px 10px', borderRadius: 999, fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 600,
+                  background: bundleChange7d >= 0 ? 'var(--green-dim)' : 'rgba(255,51,102,0.1)',
+                  color: bundleChange7d >= 0 ? 'var(--green)' : 'var(--red)',
+                  border: `1px solid ${bundleChange7d >= 0 ? 'rgba(0,255,136,0.25)' : 'rgba(255,51,102,0.25)'}`,
+                }}>
+                  {bundleChange7d >= 0 ? '▲' : '▼'} {Math.abs(bundleChange7d).toFixed(2)}% <span style={{ opacity: 0.7, fontSize: 9 }}>7D LIVE</span>
+                </span>
+              )}
+            </div>
+
+            {/* Live token price chips */}
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {liveTokens.slice(0, 5).map(t => (
+                <div key={t.symbol} style={{
+                  display: 'flex', alignItems: 'center', gap: 4,
+                  padding: '4px 8px', borderRadius: 6,
+                  background: 'var(--bg-card2)', border: '1px solid var(--border)',
+                  fontFamily: 'var(--font-mono)', fontSize: 10,
+                }}>
+                  <span style={{ color: t.color || 'var(--text-2)' }}>{t.icon} {t.symbol}</span>
+                  <span style={{ color: 'var(--text-1)', fontWeight: 600 }}>{formatPrice(t.livePrice)}</span>
+                  {t.change24h != null && (
+                    <span style={{ color: t.change24h >= 0 ? 'var(--green)' : 'var(--red)', fontSize: 9 }}>
+                      {t.change24h >= 0 ? '+' : ''}{t.change24h.toFixed(1)}%
+                    </span>
+                  )}
+                </div>
+              ))}
+              {liveTokens.length > 5 && (
+                <span style={{ fontSize: 10, color: 'var(--text-3)', fontFamily: 'var(--font-mono)', alignSelf: 'center' }}>
+                  +{liveTokens.length - 5} more
+                </span>
+              )}
+            </div>
           </div>
 
-          {/* Period return badges */}
-          <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
-            {bundleChange6m != null && (
-              <span style={{
-                padding: '3px 10px', borderRadius: 999, fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 600,
-                background: bundleChange6m >= 0 ? 'var(--green-dim)' : 'rgba(255,51,102,0.1)',
-                color: bundleChange6m >= 0 ? 'var(--green)' : 'var(--red)',
-                border: `1px solid ${bundleChange6m >= 0 ? 'rgba(0,255,136,0.25)' : 'rgba(255,51,102,0.25)'}`,
-              }}>
-                {bundleChange6m >= 0 ? '▲' : '▼'} {Math.abs(bundleChange6m).toFixed(1)}% <span style={{ opacity: 0.7, fontSize: 9 }}>6M</span>
-              </span>
-            )}
-            {bundleChange7d != null && (
-              <span style={{
-                padding: '3px 10px', borderRadius: 999, fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 600,
-                background: bundleChange7d >= 0 ? 'var(--green-dim)' : 'rgba(255,51,102,0.1)',
-                color: bundleChange7d >= 0 ? 'var(--green)' : 'var(--red)',
-                border: `1px solid ${bundleChange7d >= 0 ? 'rgba(0,255,136,0.25)' : 'rgba(255,51,102,0.25)'}`,
-              }}>
-                {bundleChange7d >= 0 ? '▲' : '▼'} {Math.abs(bundleChange7d).toFixed(2)}% <span style={{ opacity: 0.7, fontSize: 9 }}>7D LIVE</span>
-              </span>
-            )}
-          </div>
+          {/* Mini chart */}
+          {bundle.chartData?.length > 0 && (
+            <div style={{ width: 120, height: 44 }}>
+              <MiniChart data={bundle.chartData} color={pnl >= 0 ? bundle.color || '#00ff88' : '#ff4466'} />
+            </div>
+          )}
 
-          {/* Live token price chips */}
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {liveTokens.slice(0, 5).map(t => (
-              <div key={t.symbol} style={{
-                display: 'flex', alignItems: 'center', gap: 4,
-                padding: '4px 8px', borderRadius: 6,
-                background: 'var(--bg-card2)', border: '1px solid var(--border)',
-                fontFamily: 'var(--font-mono)', fontSize: 10,
-              }}>
-                <span style={{ color: t.color || 'var(--text-2)' }}>{t.icon} {t.symbol}</span>
-                <span style={{ color: 'var(--text-1)', fontWeight: 600 }}>{formatPrice(t.livePrice)}</span>
-                {t.change24h != null && (
-                  <span style={{ color: t.change24h >= 0 ? 'var(--green)' : 'var(--red)', fontSize: 9 }}>
-                    {t.change24h >= 0 ? '+' : ''}{t.change24h.toFixed(1)}%
-                  </span>
-                )}
+          {/* P&L numbers */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, padding: '14px 18px', borderRadius: 'var(--r)', background: 'var(--bg-card2)', border: '1px solid var(--border)', fontFamily: 'var(--font-mono)' }}>
+            {[
+              { label: 'INVESTED',   value: `$${pos.invested.toFixed(2)}`,                                               color: 'var(--text-1)' },
+              { label: 'LIVE VALUE', value: `$${pos.currentValue.toFixed(2)}`,                                            color: 'var(--cyan)'   },
+              { label: 'P&L',        value: `${pnl >= 0 ? '+' : ''}$${Math.abs(pnl).toFixed(2)}\n${pnlPct >= 0 ? '+' : ''}${pnlPct.toFixed(1)}%`, color: pnl >= 0 ? 'var(--green)' : 'var(--red)' },
+            ].map(s => (
+              <div key={s.label} style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 10, color: 'var(--text-3)', marginBottom: 4 }}>{s.label}</div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: s.color, whiteSpace: 'pre-line', lineHeight: 1.4 }}>{s.value}</div>
               </div>
             ))}
-            {liveTokens.length > 5 && (
-              <span style={{ fontSize: 10, color: 'var(--text-3)', fontFamily: 'var(--font-mono)', alignSelf: 'center' }}>
-                +{liveTokens.length - 5} more
-              </span>
-            )}
           </div>
         </div>
 
-        {/* Mini chart */}
-        {bundle.chartData?.length > 0 && (
-          <div style={{ width: 120, height: 44 }}>
-            <MiniChart data={bundle.chartData} color={pnl >= 0 ? bundle.color || '#00ff88' : '#ff4466'} />
-          </div>
-        )}
-
-        {/* P&L numbers */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, padding: '14px 18px', borderRadius: 'var(--r)', background: 'var(--bg-card2)', border: '1px solid var(--border)', fontFamily: 'var(--font-mono)' }}>
-          {[
-            { label: 'INVESTED',   value: `$${pos.invested.toFixed(2)}`,                                               color: 'var(--text-1)' },
-            { label: 'LIVE VALUE', value: `$${pos.currentValue.toFixed(2)}`,                                            color: 'var(--cyan)'   },
-            { label: 'P&L',        value: `${pnl >= 0 ? '+' : ''}$${Math.abs(pnl).toFixed(2)}\n${pnlPct >= 0 ? '+' : ''}${pnlPct.toFixed(1)}%`, color: pnl >= 0 ? 'var(--green)' : 'var(--red)' },
-          ].map(s => (
-            <div key={s.label} style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 10, color: 'var(--text-3)', marginBottom: 4 }}>{s.label}</div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: s.color, whiteSpace: 'pre-line', lineHeight: 1.4 }}>{s.value}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Expanded token table */}
-      <div style={{ borderTop: '1px solid var(--border)', paddingTop: 14 }}>
-        <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--text-3)', marginBottom: 10, letterSpacing: '0.07em' }}>TOKEN BREAKDOWN — LIVE PRICES</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 8 }}>
-          {liveTokens.map(t => (
-            <div key={t.symbol} style={{
-              display: 'flex', alignItems: 'center', gap: 10,
-              padding: '10px 12px', borderRadius: 'var(--r)',
-              background: 'var(--bg-card2)', border: '1px solid var(--border)',
-            }}>
-              <span style={{ fontSize: 18 }}>{t.icon}</span>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 6 }}>
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 700, color: t.color || 'var(--text-1)' }}>{t.symbol}</span>
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 700, color: 'var(--text-1)' }}>{formatPrice(t.livePrice)}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 3 }}>
-                  <span style={{ fontSize: 10, color: 'var(--text-3)', fontFamily: 'var(--font-mono)' }}>{t.weight}% of bundle</span>
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    {t.change24h != null && (
-                      <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: t.change24h >= 0 ? 'var(--green)' : 'var(--red)' }}>
-                        {t.change24h >= 0 ? '+' : ''}{t.change24h.toFixed(2)}% 24H
-                      </span>
-                    )}
-                    {t.change7d != null && (
-                      <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: t.change7d >= 0 ? 'var(--green)' : 'var(--red)' }}>
-                        {t.change7d >= 0 ? '+' : ''}{t.change7d.toFixed(2)}% 7D
-                      </span>
-                    )}
+        {/* Expanded token table */}
+        <div style={{ borderTop: '1px solid var(--border)', paddingTop: 14 }}>
+          <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--text-3)', marginBottom: 10, letterSpacing: '0.07em' }}>TOKEN BREAKDOWN — LIVE PRICES</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 8, marginBottom: 16 }}>
+            {liveTokens.map(t => (
+              <div key={t.symbol} style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                padding: '10px 12px', borderRadius: 'var(--r)',
+                background: 'var(--bg-card2)', border: '1px solid var(--border)',
+              }}>
+                <span style={{ fontSize: 18 }}>{t.icon}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 6 }}>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 700, color: t.color || 'var(--text-1)' }}>{t.symbol}</span>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 700, color: 'var(--text-1)' }}>{formatPrice(t.livePrice)}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 3 }}>
+                    <span style={{ fontSize: 10, color: 'var(--text-3)', fontFamily: 'var(--font-mono)' }}>{t.weight}% of bundle</span>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      {t.change24h != null && (
+                        <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: t.change24h >= 0 ? 'var(--green)' : 'var(--red)' }}>
+                          {t.change24h >= 0 ? '+' : ''}{t.change24h.toFixed(2)}% 24H
+                        </span>
+                      )}
+                      {t.change7d != null && (
+                        <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: t.change7d >= 0 ? 'var(--green)' : 'var(--red)' }}>
+                          {t.change7d >= 0 ? '+' : ''}{t.change7d.toFixed(2)}% 7D
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
+
+          {/* Withdraw button */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <button
+              onClick={() => setShowWithdraw(true)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 7,
+                padding: '10px 20px', borderRadius: 'var(--r)',
+                background: 'rgba(255,51,102,0.08)', border: '1px solid rgba(255,51,102,0.28)',
+                color: 'var(--red)', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13,
+                cursor: 'pointer', transition: 'all .15s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,51,102,0.15)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,51,102,0.08)' }}
+            >
+              <ArrowDownLeft size={14} />
+              Withdraw
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+
+      {showWithdraw && (
+        <WithdrawModal pos={pos} onClose={() => setShowWithdraw(false)} />
+      )}
+    </>
   )
 }
 
