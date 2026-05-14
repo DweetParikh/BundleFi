@@ -1,10 +1,3 @@
-/**
- * tokens.js
- * Single source of truth for token metadata.
- * Shared between priceService, bundleService, and the price worker.
- */
-
-// Mainnet SPL mints
 export const MAINNET_MINTS = {
   SOL:    'So11111111111111111111111111111111111111112',
   JUP:    'JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN',
@@ -22,16 +15,14 @@ export const MAINNET_MINTS = {
   POPCAT: '7GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdC8uHYmW2hr',
 }
 
-// Reverse lookup: mint address → symbol
 export const MINT_TO_SYMBOL = Object.fromEntries(
   Object.entries(MAINNET_MINTS).map(([sym, mint]) => [mint, sym])
 )
 
-// CoinGecko IDs for non-Solana or dual-tracked tokens
 export const COINGECKO_IDS = {
   SOL:    'solana',
   JUP:    'jupiter-exchange-solana',
-  WIF:    'dogwifcoin',
+  WIF:    'dogwifhat',
   BONK:   'bonk',
   PYTH:   'pyth-network',
   RENDER: 'render-token',
@@ -63,12 +54,10 @@ export const COINGECKO_IDS = {
   POPCAT: 'popcat',
 }
 
-// Reverse lookup: coingeckoId → symbol
 export const CG_ID_TO_SYMBOL = Object.fromEntries(
   Object.entries(COINGECKO_IDS).map(([sym, id]) => [id, sym])
 )
 
-// Fallback prices (used when APIs are unavailable)
 export const FALLBACK_PRICES = {
   SOL:    178.42,
   JUP:    1.24,
@@ -104,7 +93,6 @@ export const FALLBACK_PRICES = {
   POPCAT: 0.832,
 }
 
-// Complete token metadata map
 export const TOKEN_META = Object.fromEntries(
   Object.keys(FALLBACK_PRICES).map((sym) => [
     sym,
@@ -117,8 +105,6 @@ export const TOKEN_META = Object.fromEntries(
   ])
 )
 
-// Only Solana tokens (those with a mint address)
 export const SOLANA_TOKEN_MINTS = Object.values(MAINNET_MINTS)
 
-// All tracked CoinGecko IDs as comma-separated string
 export const ALL_CG_IDS = Object.values(COINGECKO_IDS).join(',')
