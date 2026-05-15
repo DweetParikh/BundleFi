@@ -903,7 +903,7 @@ function DoneStep({ bundle, solAmount, investmentResult, onClose }) {
         marginBottom: 14, fontFamily: 'var(--font-mono)', fontSize: 11, textAlign: 'left',
       }}>
         <div style={{ color: 'var(--text-3)', marginBottom: 6, fontSize: 10, letterSpacing: '0.07em' }}>
-          SOL TRANSFER — CONFIRMED ON DEVNET
+          SOL TRANSFER — CONFIRMED ON MAINNET
         </div>
         <a
           href={explorerUrl}
